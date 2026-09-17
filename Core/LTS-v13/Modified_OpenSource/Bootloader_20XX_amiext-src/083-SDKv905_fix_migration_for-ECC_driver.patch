@@ -1,0 +1,81 @@
+From 9e993edc6ecad599ff37d991053d7549e49fe5d0 Mon Sep 17 00:00:00 2001
+From: saikumaru <saikumaru@ami.com>
+Date: Fri, 4 Apr 2025 09:49:48 +0530
+Subject: [PATCH] SDKv905_fix migration for ECC driver
+
+Signed-off-by: saikumaru <saikumaru@ami.com>
+---
+ drivers/ram/aspeed/sdram_ast2600.c | 22 ++++++++++++----------
+ 1 files changed, 12 insertions(+), 10 deletions(-)
+
+diff --git a/drivers/ram/aspeed/sdram_ast2600.c b/drivers/ram/aspeed/sdram_ast2600.c
+index 252451bc..3e8eba9a 100644
+--- a/drivers/ram/aspeed/sdram_ast2600.c
++++ b/drivers/ram/aspeed/sdram_ast2600.c
+@@ -851,7 +851,6 @@ static void ast2600_sdrammc_update_size(struct dram_info *info)
+ 		break;
+ 	}
+ 
+-	ram_size = (CONFIG_SYS_SDRAM_SYS_USED < ram_size) ? CONFIG_SYS_SDRAM_SYS_USED:ram_size;
+ 	info->info.base = CONFIG_SYS_SDRAM_BASE;
+ 	info->info.size = ram_size - ast2600_sdrammc_get_vga_mem_size(info) - CONFIG_ASPEED_SSP_RERV_MEM;
+ 
+@@ -863,17 +862,17 @@ static void ast2600_sdrammc_update_size(struct dram_info *info)
+ 
+ 	info->info.size = hw_size;
+ }
+-#ifdef CONFIG_DRAM_ECC
+-static void ast2600_sdrammc_ecc_enable(struct dram_info *info)
++
++static void ast2600_sdrammc_ecc_enable(struct dram_info *info, u32 conf_size_mb)
+ {
+ 	struct ast2600_sdrammc_regs *regs = info->regs;
+ 	size_t conf_size;
+ 	u32 reg;
+ 
+-	conf_size = CONFIG_SYS_SDRAM_ECC_USED * SDRAM_SIZE_1MB;
++	conf_size = conf_size_mb * SDRAM_SIZE_1MB;
+ 	if (conf_size > info->info.size) {
+ 		printf("warning: ECC configured %dMB but actual size is %dMB\n",
+-		       CONFIG_SYS_SDRAM_ECC_USED,
++		       conf_size_mb,
+ 		       info->info.size / SDRAM_SIZE_1MB);
+ 		conf_size = info->info.size;
+ 	} else if (conf_size == 0) {
+@@ -894,7 +893,6 @@ static void ast2600_sdrammc_ecc_enable(struct dram_info *info)
+ 	writel(BIT(31), &regs->intr_ctrl);
+ 	writel(0, &regs->intr_ctrl);
+ }
+-#endif
+ 
+ static int ast2600_sdrammc_probe(struct udevice *dev)
+ {
+@@ -933,7 +931,7 @@ static int ast2600_sdrammc_probe(struct udevice *dev)
+ 	writel(reg, priv->scu + AST_SCU_MPLL);
+ 	writel(SCU_MPLL_EXT_CFG, priv->scu + AST_SCU_MPLL_EXT);
+ 	udelay(100);
+-	reg &= ~BIT(25);	
++	reg &= ~BIT(25);
+ 	writel(reg, priv->scu + AST_SCU_MPLL);
+ 	while (0 == (readl(priv->scu + AST_SCU_MPLL_EXT) & BIT(31)))
+ 		;
+@@ -987,9 +985,13 @@ L_ast2600_sdramphy_train:
+ 	}
+ #endif
+ 
+-#ifdef CONFIG_DRAM_ECC
+-	ast2600_sdrammc_ecc_enable(priv);
+-#endif
++	if (dev_read_bool(dev, "aspeed,ecc-enabled")) {
++		u32 ecc_size;
++
++		ecc_size = dev_read_u32_default(dev, "aspeed,ecc-size-mb", 0);
++		ast2600_sdrammc_ecc_enable(priv, ecc_size);
++	}
++
+ 	setbits_le32(priv->scu + AST_SCU_HANDSHAKE, SCU_HANDSHAKE_MASK);
+ 	clrbits_le32(&regs->intr_ctrl, MCR50_RESET_ALL_INTR);
+ 	ast2600_sdrammc_lock(priv);
+-- 
+2.43.2
+

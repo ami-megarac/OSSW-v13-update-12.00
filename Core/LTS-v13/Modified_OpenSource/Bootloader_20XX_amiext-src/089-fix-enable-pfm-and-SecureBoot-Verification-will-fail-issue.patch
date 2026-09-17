@@ -1,0 +1,12 @@
+diff -Naur uboot_orgin/oem/ami/fmh/hrotcore.c uboot/oem/ami/fmh/hrotcore.c
+--- uboot_orgin/oem/ami/fmh/hrotcore.c	2025-11-19 17:04:26.570644134 +0800
++++ uboot/oem/ami/fmh/hrotcore.c	2025-11-19 17:11:03.826629098 +0800
+@@ -436,7 +436,7 @@
+         hang();
+     }
+ 
+-	if((ModType != MODULE_JFFS2 && ModType != MODULE_BOOTLOADER) || (UBOOT_VALIDATE && ModType == MODULE_BOOTLOADER)){
++	if((ModType != MODULE_JFFS2 && ModType != MODULE_BOOTLOADER) || (UBOOT_VALIDATE && ModType == MODULE_BOOTLOADER && strncmp((char *)ModName,"boot",sizeof("boot")) == 0)){
+ 
+ 		if(ModType != MODULE_BOOTLOADER && ModType != MODULE_FMH_FIRMWARE){
+                         hash_start = startaddress + fmhLocation;

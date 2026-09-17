@@ -1,0 +1,73 @@
+diff -Naur uboot_ori/oem/ami/ncsi/ncsistart.c uboot/oem/ami/ncsi/ncsistart.c
+--- uboot_ori/oem/ami/ncsi/ncsistart.c	2026-03-03 14:15:24.591702613 +0800
++++ uboot/oem/ami/ncsi/ncsistart.c	2026-03-03 14:27:26.852150556 +0800
+@@ -172,9 +172,20 @@
+ #endif
+ 			
+ 
++	PrevPackageID = -1;
++	for(i=0;i<TotalChannels;i++)
++	{
++		if(ChannelInfo[i].PackageID > MAX_PACKAGE_ID)
++			continue;
+ 
++		/* Count the number of valid packages*/
++		if (PrevPackageID != ChannelInfo[i].PackageID)
++		{
++			ValidPackages++;
++			PrevPackageID = ChannelInfo[i].PackageID;
++		}
++	}
+ 
+-	PrevPackageID = -1;
+ 	/* Configure the detected channels */
+ 	for(i=0;i<TotalChannels;i++)
+ 	{
+@@ -252,32 +263,27 @@
+ 			printf("NCSI:%d.%d Enable AEN Failed\n",PackageID, ChannelID);	
+ 			continue;
+ 		}
+-#if 0
+-		/* Enable Auto Negotiation */
+-		if (NCSI_Issue_SetLink((UINT8)PackageID,(UINT8)ChannelID,1,0,0) != 0)
+-		{
+-			printf("NCSI:%d.%d Set Link Failed\n",PackageID, ChannelID);	
+-	// When Host driver is loaded, we cannot SetLink. 
+-	// So don't quit on SetLink failure
+-	//		continue;
+-		}
+-		else
++
++		if (ValidPackages<=1)
+ 		{
+-			/* Wait for one second for Set Link to complete */
+-			udelay(1000*1000);
++			/* Enable Auto Negotiation */
++			if (NCSI_Issue_SetLink((UINT8)PackageID,(UINT8)ChannelID,1,0,0) != 0)
++			{
++				printf("NCSI:%d.%d Set Link Failed\n",PackageID, ChannelID);	
++				// When Host driver is loaded, we cannot SetLink. 
++				// So don't quit on SetLink failure
++				// continue;
++			}
++			else
++			{
++				/* Wait for one second for Set Link to complete */
++				udelay(1000*1000);
++			}
+ 		}
+-#endif
+ 
+ 		/* Set this channel info is setup */
+ 		ChannelInfo[i].Valid = 1;
+ 
+-		/* Count the number of valid packages*/
+-		if (PrevPackageID != PackageID)
+-		{
+-			ValidPackages++;
+-			PrevPackageID = PackageID;
+-		}
+-
+ 		/* Deselect previusly selected package */
+ 		NCSI_Issue_DeSelectPackage(PackageID);
+ 	}

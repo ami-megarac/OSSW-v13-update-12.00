@@ -1,0 +1,286 @@
+diff -Naur uboot_origin/common/image-fit.c uboot/common/image-fit.c
+--- uboot_origin/common/image-fit.c	2026-07-21 14:30:22.998200072 +0800
++++ uboot/common/image-fit.c	2026-07-23 14:57:45.747104296 +0800
+@@ -972,6 +972,7 @@
+ {
+ 	bool external_data = false;
+ 	int offset;
++	int fdt_total_size_aligned;
+ 	int len;
+ 	int ret;
+ 
+@@ -984,13 +985,39 @@
+ 		 * the external images start. This is the base
+ 		 * for the data-offset properties in each image.
+ 		 */
+-		offset += ((fdt_totalsize(fit) + 3) & ~3);
++		fdt_total_size_aligned = (fdt_totalsize(fit) + 3) & ~3;
++		if (offset < 0 || fdt_total_size_aligned > INT_MAX - offset)
++			return -1;
++
++		offset += fdt_total_size_aligned;
+ 	}
+ 
+ 	if (external_data) {
+ 		debug("External Data\n");
++		if (offset < 0 || (uintptr_t)offset > (uintptr_t)-1 -
++		    (uintptr_t)fit) {
++			printf("Invalid external data offset: %d\n", offset);
++			return -1;
++		}
+ 		ret = fit_image_get_data_size(fit, noffset, &len);
+ 		if (!ret) {
++			if (len < 0) {
++				printf("Invalid external data size: %d\n", len);
++				return -1;
++			}
++			if ((uintptr_t)len > (uintptr_t)-1 - (uintptr_t)fit -
++			    offset) {
++				printf("FIT external data is out of bounds (offset=%d, size=%d)\n",
++				       offset, len);
++				return -1;
++			}
++#ifdef CONFIG_FIT_SIGNATURE
++			if (len > CONFIG_FIT_SIGNATURE_MAX_SIZE - offset) {
++				printf("FIT external data is out of bounds (offset=%d, size=%d)\n",
++				       offset, len);
++				return -1;
++			}
++#endif
+ 			*data = fit + offset;
+ 			*size = len;
+ 		}
+@@ -1476,6 +1503,26 @@
+ 	return (comp == image_comp);
+ }
+ 
++static int fit_check_max_depth(const void *fit)
++{
++	int noffset;
++	int ndepth = 0;
++
++	for (noffset = fdt_next_node(fit, -1, &ndepth);
++	     noffset >= 0;
++	     noffset = fdt_next_node(fit, noffset, &ndepth)) {
++		/*
++		 * fdt_next_node() reports root depth as 1. Keep the same
++		 * effective nesting limit as the upstream depth-limited
++		 * recursive check by rejecting only when we exceed it.
++		 */
++		if (ndepth > FDT_MAX_DEPTH)
++			return -FDT_ERR_BADSTRUCTURE;
++	}
++
++	return noffset < 0 && noffset != -FDT_ERR_NOTFOUND ? noffset : 0;
++}
++
+ /**
+  * fit_check_format - sanity check FIT image format
+  * @fit: pointer to the FIT format image header
+@@ -1515,6 +1562,11 @@
+ 		return 0;
+ 	}
+ 
++	if (fit_check_max_depth(fit)) {
++		debug("Wrong FIT format: tree exceeds maximum depth\n");
++		return 0;
++	}
++	
+ 	return 1;
+ }
+ 
+diff -Naur uboot_origin/common/image-sig.c uboot/common/image-sig.c
+--- uboot_origin/common/image-sig.c	2026-07-21 14:30:22.998273188 +0800
++++ uboot/common/image-sig.c	2026-07-23 14:57:45.751902493 +0800
+@@ -562,6 +562,7 @@
+ 	uint8_t *fit_value;
+ 	int fit_value_len;
+ 	int max_regions;
++	int len;
+ 	char path[200];
+ 	int count;
+ 
+@@ -614,14 +615,26 @@
+ 	}
+ 
+ 	/* Add the strings */
+-	strings = fdt_getprop(fit, noffset, "hashed-strings", NULL);
++	strings = fdt_getprop(fit, noffset, "hashed-strings", &len);
+ 	if (strings) {
++		int size;
++
++		if (len < 2 * sizeof(fdt32_t)) {
++			*err_msgp = "Invalid hashed-strings property";
++			return -1;
++		}
++
++		size = fdt32_to_cpu(strings[1]);
++		if (size > fdt_size_dt_strings(fit)) {
++			*err_msgp = "Strings region is out of bounds";
++			return -1;
++		}
+ 		/*
+ 		 * The strings region offset must be a static 0x0.
+ 		 * This is set in tool/image-host.c
+ 		 */
+ 		fdt_regions[count].offset = fdt_off_dt_strings(fit);
+-		fdt_regions[count].size = fdt32_to_cpu(strings[1]);
++		fdt_regions[count].size = size;
+ 		count++;
+ 	}
+ 
+diff -Naur uboot_origin/lib/libfdt/fdt_region.c uboot/lib/libfdt/fdt_region.c
+--- uboot_origin/lib/libfdt/fdt_region.c	2026-07-21 14:30:22.878896563 +0800
++++ uboot/lib/libfdt/fdt_region.c	2026-07-23 14:57:45.468292257 +0800
+@@ -27,6 +27,21 @@
+ 	return 0;
+ }
+ 
++static const char *fdt_string_checked(const void *fdt, int stroffset)
++{
++	int table_size = fdt_size_dt_strings(fdt);
++	const char *str;
++
++	if (stroffset < 0 || stroffset >= table_size)
++		return NULL;
++
++	str = fdt_string(fdt, stroffset);
++	if (!memchr(str, '\0', table_size - stroffset))
++		return NULL;
++
++	return str;
++}
++
+ int fdt_find_regions(const void *fdt, char * const inc[], int inc_count,
+ 		     char * const exc_prop[], int exc_prop_count,
+ 		     struct fdt_region region[], int max_regions,
+@@ -62,7 +77,11 @@
+ 			include = want >= 2;
+ 			stop_at = offset;
+ 			prop = fdt_get_property_by_offset(fdt, offset, NULL);
+-			str = fdt_string(fdt, fdt32_to_cpu(prop->nameoff));
++			if (!prop)
++				return -FDT_ERR_BADSTRUCTURE;
++			str = fdt_string_checked(fdt, fdt32_to_cpu(prop->nameoff));
++			if (!str)
++				return -FDT_ERR_BADSTRUCTURE;
+ 			if (str_in_list(str, exc_prop, exc_prop_count))
+ 				include = 0;
+ 			break;
+@@ -77,6 +96,8 @@
+ 			if (depth == FDT_MAX_DEPTH)
+ 				return -FDT_ERR_BADSTRUCTURE;
+ 			name = fdt_get_name(fdt, offset, &len);
++			if (!name)
++				return len;
+ 			if (end - path + 2 + len >= path_len)
+ 				return -FDT_ERR_NOSPACE;
+ 			if (end != path + 1)
+@@ -254,7 +275,11 @@
+ 		int target, next;
+ 
+ 		prop = fdt_get_property_by_offset(fdt, offset, NULL);
+-		name = fdt_string(fdt, fdt32_to_cpu(prop->nameoff));
++		if (!prop)
++			return -FDT_ERR_BADSTRUCTURE;
++		name = fdt_string_checked(fdt, fdt32_to_cpu(prop->nameoff));
++		if (!name)
++			return -FDT_ERR_BADSTRUCTURE;
+ 		target = fdt_path_offset(fdt, name);
+ 		if (!region_list_contains_offset(info, fdt, target))
+ 			continue;
+@@ -496,7 +521,11 @@
+ 		case FDT_PROP:
+ 			stop_at = offset;
+ 			prop = fdt_get_property_by_offset(fdt, offset, NULL);
+-			str = fdt_string(fdt, fdt32_to_cpu(prop->nameoff));
++			if (!prop)
++				return -FDT_ERR_BADSTRUCTURE;
++			str = fdt_string_checked(fdt, fdt32_to_cpu(prop->nameoff));
++			if (!str)
++				return -FDT_ERR_BADSTRUCTURE;
+ 			val = h_include(priv, fdt, last_node, FDT_IS_PROP, str,
+ 					    strlen(str) + 1);
+ 			if (val == -1) {
+@@ -529,6 +558,8 @@
+ 			if (p.depth == FDT_MAX_DEPTH)
+ 				return -FDT_ERR_BADSTRUCTURE;
+ 			name = fdt_get_name(fdt, offset, &len);
++			if (!name)
++				return len;
+ 			if (p.end - path + 2 + len >= path_len)
+ 				return -FDT_ERR_NOSPACE;
+ 
+diff -Naur uboot_origin/test/py/tests/test_vboot.py uboot/test/py/tests/test_vboot.py
+--- uboot_origin/test/py/tests/test_vboot.py	2026-07-21 14:30:23.000290529 +0800
++++ uboot/test/py/tests/test_vboot.py	2026-07-23 14:57:45.755562205 +0800
+@@ -126,6 +126,28 @@
+             handle.write(struct.pack(">I", size))
+         return struct.unpack(">I", total_size)[0]
+ 
++    def replace_fit_hashed_strings(values):
++        """Replace the hashed-strings property in the config signature node.
++
++        Args:
++            values: Iterable of integer cells to write into hashed-strings.
++
++        Returns:
++            The previous hashed-strings cells as a list of strings.
++        """
++        hashed_strings = util.run_and_log(
++            cons, 'fdtget -t x %s %s hashed-strings' % (fit, sig_node))
++        value_str = ' '.join('0x%x' % value for value in values)
++        util.run_and_log(
++            cons, 'fdtput -t x %s %s hashed-strings %s' %
++            (fit, sig_node, value_str))
++        return hashed_strings.split()
++
++    def restore_fit_hashed_strings(values):
++        util.run_and_log(cons, 'fdtput -t x %s %s hashed-strings %s' %
++                         (fit, sig_node, ' '.join(values)))
++
++
+     def test_with_algo(sha_algo, padding):
+         """Test verified boot with the given hash algorithm.
+ 
+@@ -167,6 +189,28 @@
+         util.run_and_log(cons, [fit_check_sign, '-f', fit, '-k', tmpdir,
+                                 '-k', dtb])
+ 
++        cons.log.action('%s: Check malformed hashed-strings property' %
++                        sha_algo)
++        existing_hashed_strings = replace_fit_hashed_strings([0])
++        run_bootm(sha_algo, 'signed config with malformed hashed-strings',
++                  'Invalid hashed-strings property', False)
++        util.run_and_log_expect_exception(
++            cons, [fit_check_sign, '-f', fit, '-k', tmpdir, '-k', dtb], 1,
++            'Invalid hashed-strings property')
++        restore_fit_hashed_strings(existing_hashed_strings)
++        run_bootm(sha_algo, 'signed config', 'dev+', True)
++
++        cons.log.action('%s: Check out-of-bounds hashed-strings region' %
++                        sha_algo)
++        existing_hashed_strings = replace_fit_hashed_strings([0, 0x7fffffff])
++        run_bootm(sha_algo, 'signed config with oversized hashed-strings',
++                  'Strings region is out of bounds', False)
++        util.run_and_log_expect_exception(
++            cons, [fit_check_sign, '-f', fit, '-k', tmpdir, '-k', dtb], 1,
++            'Strings region is out of bounds')
++        restore_fit_hashed_strings(existing_hashed_strings)
++        run_bootm(sha_algo, 'signed config', 'dev+', True)
++
+         # Replace header bytes
+         bcfg = u_boot_console.config.buildconfig
+         max_size = int(bcfg.get('config_fit_signature_max_size', 0x10000000), 0)
+diff -Naur uboot_origin/tools/fdtgrep.c uboot/tools/fdtgrep.c
+--- uboot_origin/tools/fdtgrep.c	2026-07-21 14:30:23.006527405 +0800
++++ uboot/tools/fdtgrep.c	2026-07-23 14:57:45.786597208 +0800
+@@ -354,6 +354,8 @@
+ 
+ 		case FDT_BEGIN_NODE:
+ 			name = fdt_get_name(blob, offset, &len);
++			if (!name)
++				return len;
+ 			fprintf(f, "%*s%s {", depth++ * shift, "",
+ 				*name ? name : "/");
+ 			break;

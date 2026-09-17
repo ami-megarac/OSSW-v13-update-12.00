@@ -1,0 +1,94 @@
+diff -Naur uboot_org/oem/ami/fmh/ast_wdt.c uboot/oem/ami/fmh/ast_wdt.c
+--- uboot_org/oem/ami/fmh/ast_wdt.c	2025-07-02 11:49:05.518085784 +0800
++++ uboot/oem/ami/fmh/ast_wdt.c	2025-07-23 14:11:42.634327042 +0800
+@@ -19,7 +19,11 @@
+ #include <common.h>
+ 
+ #define WDT_ENABLE              0x01
++#ifdef CONFIG_SPX_FEATURE_SECURE_BOOT_ENCRYPTION_SUPPORT
++#define WDT_TIMEOUT             0x35A4E900              // 15 Minutes (900 secs * 1MHz)
++#else
+ #define WDT_TIMEOUT             0x11E1A300              // 5 Minutes (300 secs * 1MHz)
++#endif
+ #define WDT_TRIGGER             0x00004755              // Trigger Passcode
+ #define WDT_CLOCK               0x10                    // 1MHz Clock for WDT
+ #define WDT_RESET_SYSTEM        0x02                    // Enable System-Reset-On-Timeout
+diff -Naur uboot_org/oem/ami/fmh/cmd_fmh.c uboot/oem/ami/fmh/cmd_fmh.c
+--- uboot_org/oem/ami/fmh/cmd_fmh.c	2025-07-02 11:49:06.108077451 +0800
++++ uboot/oem/ami/fmh/cmd_fmh.c	2025-07-21 17:38:42.691950390 +0800
+@@ -38,8 +38,8 @@
+ # define  KERNEL_FILE		"/boot/kernel_fit"
+ # define  KERNEL_DTB		"/boot/kernel.dtb"
+ #ifdef CONFIG_SPX_FEATURE_SECURE_BOOT_ENCRYPTION_SUPPORT
+-# define UIMAGE_LOADADDR	(ASPEED_DRAM_BASE + 0x8000 )
+-# define DTB_LOADADDR		(ASPEED_DRAM_BASE + 0x1000000 )
++# define UIMAGE_LOADADDR	(ASPEED_DRAM_BASE + 0x1000000  )
++# define DTB_LOADADDR		(ASPEED_DRAM_BASE + 0x8000 )
+ # define INITRD_LOADADDR	(ASPEED_DRAM_BASE + 0x2000000 )
+ # define SECURE_KEY_LOADADDR	(ASPEED_SRAM_BASE + 0xec00 ) 
+ # define SECURE_IV_LOADADDR		(ASPEED_SRAM_BASE + 0xee00 ) 
+@@ -1368,7 +1368,6 @@
+ #ifdef CONFIG_SPX_FEATURE_SECURE_BOOT_ENCRYPTION_SUPPORT	
+ 	char lenStr[128] = "0xFFFFFFFF";
+ 	char INITRDLenStr[128] = "0xFFFFFFFF";
+-	char dtsLenrstr[128] = "0xFFFFFFFF";	
+ 	char aesCMD[5][128] = {"aes.256","dec","0xFFFFFFFF","0xFFFFFFFF","0xFFFFFFFF"};
+ #endif		
+ 	char baudrate_str[16] = {0};
+@@ -1407,7 +1406,6 @@
+ 	unsigned long ExecuteAddr = 0xFFFFFFFF;
+ 	unsigned long dtsaddr = 0xFFFFFFFF;
+ #ifdef CONFIG_SPX_FEATURE_SECURE_BOOT_ENCRYPTION_SUPPORT		
+-	unsigned long dtslen = 0xFFFFFFFF;
+ 	unsigned long initrdlen = 0xFFFFFFFF;
+ 	unsigned long len = 0xFFFFFFFF;
+ #endif	
+@@ -1722,9 +1720,6 @@
+ 		if (le16_to_host(mod->Module_Type) == MODULE_FPGA)
+ 		{
+ 			dtsaddr = startaddress + le32_to_host(mod->Module_Location);
+-#ifdef CONFIG_SPX_FEATURE_SECURE_BOOT_ENCRYPTION_SUPPORT				
+-			dtslen = le32_to_host(mod->Module_Size);
+-#endif			
+ 		}
+ 
+ 
+@@ -1761,6 +1756,7 @@
+ 						initrd_address =  le32_to_host(mod->Module_Load_Address);
+ #ifdef CONFIG_SPX_FEATURE_SECURE_BOOT_ENCRYPTION_SUPPORT						
+ 						initrdlen = le32_to_host(mod->Module_Size);
++						initrd_address =  le32_to_host(mod->Module_Location);
+ #endif						
+ 						printf("INITRD Image moved to 0x%lx\n",initrd_address);
+ 					}
+@@ -1972,20 +1968,7 @@
+ 			sprintf(&aesCMD[2][0],"0x%x",SECURE_KEY_LOADADDR);
+ 			sprintf(&aesCMD[3][0],"0x%x",SECURE_IV_LOADADDR);			
+ 
+-			printf("Decrypt DTS to 0x%x ...",DTB_LOADADDR);
+-			sprintf(&aesCMD[4][0],"0x%x",DTB_LOADADDR);
+-			sprintf(dtsaddrstr,"0x%lx",dtsaddr);
+-			sprintf(dtsLenrstr,"0x%lx",dtslen);
+-			argv[0] = &aesCMD[0][0];
+-			argv[1] = &aesCMD[1][0];
+-			argv[2] = &aesCMD[2][0];
+-			argv[3] = &aesCMD[3][0];
+-			argv[4] = &dtsaddrstr[0];
+-			argv[5] = &aesCMD[4][0];
+-			argv[6] = &dtsLenrstr[0];
+-			retval =  do_aes(NULL,0,7,argv);
+-			if(retval == 0) { printf("Success\n"); }  else { printf("Failed\n"); return retval;}
+-			printf("Decrypt Kernel to 0x%x ...",UIMAGE_LOADADDR);
++			printf("Decrypt kernel_fit to 0x%x ...",UIMAGE_LOADADDR);            
+ 			sprintf(&aesCMD[4][0],"0x%x",UIMAGE_LOADADDR);
+ 			sprintf(AddrStr,"0x%lx",ExecuteAddr);
+ 			sprintf(lenStr,"0x%lx",len);
+@@ -2013,7 +1996,7 @@
+ 			if(retval == 0) { printf("Success\n"); }  else { printf("Failed\n"); return retval;}
+ 			sprintf(AddrStr,"0x%x",UIMAGE_LOADADDR);
+ 			sprintf(INITRDAddrStr,"0x%x",INITRD_LOADADDR);
+-			sprintf(dtsaddrstr,"0x%x",DTB_LOADADDR);			
++			sprintf(dtsaddrstr,"0x%lx",dtsaddr); 		
+ #else
+ 			sprintf(AddrStr,"0x%lx",ExecuteAddr);
+ 			sprintf(INITRDAddrStr,"0x%lx",initrd_address);

@@ -1,0 +1,1383 @@
+diff -Naur uboot_ori/drivers/net/ftgmac100.c uboot/drivers/net/ftgmac100.c
+--- uboot_ori/drivers/net/ftgmac100.c	2025-04-08 21:34:53.916928416 +0800
++++ uboot/drivers/net/ftgmac100.c	2025-04-08 21:41:32.189373380 +0800
+@@ -119,7 +119,7 @@
+ 				 FTGMAC100_MDIO_TIMEOUT_USEC);
+ 	if (ret) {
+ 		pr_err("%s: mdio read failed (phy:%d reg:%x)\n",
+-		       priv->phydev->dev->name, phy_addr, reg_addr);
++		       bus->name, phy_addr, reg_addr);
+ 		return ret;
+ 	}
+ 
+@@ -151,7 +151,7 @@
+ 				 FTGMAC100_MDIO_TIMEOUT_USEC);
+ 	if (ret) {
+ 		pr_err("%s: mdio write failed (phy:%d reg:%x)\n",
+-		       priv->phydev->dev->name, phy_addr, reg_addr);
++		       bus->name, phy_addr, reg_addr);
+ 	}
+ 
+ 	return ret;
+diff -Naur uboot_ori/drivers/net/phy/air_an8801.c uboot/drivers/net/phy/air_an8801.c
+--- uboot_ori/drivers/net/phy/air_an8801.c	1970-01-01 08:00:00.000000000 +0800
++++ uboot/drivers/net/phy/air_an8801.c	2025-04-08 21:49:02.103589296 +0800
+@@ -0,0 +1,501 @@
++// SPDX-License-Identifier: GPL-2.0
++/* FILE NAME:  air_an8801.c
++ * PURPOSE:
++ *      Airoha phy driver for Uboot
++ * NOTES:
++ *
++ */
++
++/* INCLUDE FILE DECLARATIONS
++ */
++
++#include <common.h>
++#include <malloc.h>
++#include <phy.h>
++#include <dm.h>
++
++#include "air_an8801.h"
++
++#define phydev_cfg(phy)            ((struct an8801r_priv *)(phy)->priv)
++
++/* For reference only
++ *	GPIO1    <-> LED0,
++ *	GPIO2    <-> LED1,
++ *	GPIO3    <-> LED2,
++ */
++/* User-defined.B */
++static const struct AIR_LED_CFG_T led_cfg_dlt[MAX_LED_SIZE] = {
++//   LED Enable,          GPIO,    LED Polarity,      LED ON,    LED Blink
++	/* LED0 */
++	{LED_ENABLE, AIR_LED_GPIO1, AIR_ACTIVE_LOW,  AIR_LED0_ON, AIR_LED0_BLK},
++	/* LED1 */
++	{LED_ENABLE, AIR_LED_GPIO2, AIR_ACTIVE_HIGH, AIR_LED1_ON, AIR_LED1_BLK},
++	/* LED2 */
++	{LED_ENABLE, AIR_LED_GPIO3, AIR_ACTIVE_HIGH, AIR_LED2_ON, AIR_LED2_BLK},
++};
++
++static const u16 led_blink_cfg_dlt = AIR_LED_BLK_DUR_64M;
++/* RGMII delay */
++static const u8 rxdelay_force = FALSE;
++static const u8 txdelay_force = FALSE;
++static const u16 rxdelay_step = AIR_RGMII_DELAY_NOSTEP;
++static const u8 rxdelay_align = FALSE;
++static const u16 txdelay_step = AIR_RGMII_DELAY_NOSTEP;
++/* User-defined.E */
++
++/************************************************************************
++ *                  F U N C T I O N S
++ ************************************************************************/
++static int __air_buckpbus_reg_write(struct phy_device *phydev, u32 addr,
++				    u32 data)
++{
++	int err = 0;
++
++	err = phy_write(phydev, MDIO_DEVAD_NONE, 0x1F, 4);
++	if (err)
++		return err;
++
++	err |= phy_write(phydev, MDIO_DEVAD_NONE, 0x10, 0);
++	err |= phy_write(phydev, MDIO_DEVAD_NONE, 0x11, (u16)(addr >> 16));
++	err |= phy_write(phydev, MDIO_DEVAD_NONE, 0x12, (u16)(addr & 0xffff));
++	err |= phy_write(phydev, MDIO_DEVAD_NONE, 0x13, (u16)(data >> 16));
++	err |= phy_write(phydev, MDIO_DEVAD_NONE, 0x14, (u16)(data & 0xffff));
++	err |= phy_write(phydev, MDIO_DEVAD_NONE, 0x1F, 0);
++
++	return err;
++}
++
++static u32 __air_buckpbus_reg_read(struct phy_device *phydev, u32 addr)
++{
++	int err = 0;
++	u32 data_h, data_l, data;
++
++	err = phy_write(phydev, MDIO_DEVAD_NONE, 0x1F, 4);
++	if (err)
++		return err;
++
++	err |= phy_write(phydev, MDIO_DEVAD_NONE, 0x10, 0);
++	err |= phy_write(phydev, MDIO_DEVAD_NONE, 0x15, (u16)(addr >> 16));
++	err |= phy_write(phydev, MDIO_DEVAD_NONE, 0x16, (u16)(addr & 0xffff));
++	data_h = phy_read(phydev, MDIO_DEVAD_NONE, 0x17);
++	data_l = phy_read(phydev, MDIO_DEVAD_NONE, 0x18);
++	err |= phy_write(phydev, MDIO_DEVAD_NONE, 0x1F, 0);
++	if (err)
++		return INVALID_DATA;
++
++	data = ((data_h & 0xffff) << 16) | (data_l & 0xffff);
++	return data;
++}
++
++static int air_buckpbus_reg_write(struct phy_device *phydev, u32 addr, u32 data)
++{
++	return __air_buckpbus_reg_write(phydev, addr, data);
++}
++
++static u32 air_buckpbus_reg_read(struct phy_device *phydev, u32 addr)
++{
++	return __air_buckpbus_reg_read(phydev, addr);
++}
++
++static int __an8801r_cl45_write(struct phy_device *phydev, int devad, u16 reg,
++				u16 val)
++{
++	u32 addr = (AN8801R_EPHY_ADDR | AN8801R_CL22 | (devad << 18) |
++				(reg << 2));
++
++	return __air_buckpbus_reg_write(phydev, addr, val);
++}
++
++static int __an8801r_cl45_read(struct phy_device *phydev, int devad, u16 reg)
++{
++	u32 addr = (AN8801R_EPHY_ADDR | AN8801R_CL22 | (devad << 18) |
++				(reg << 2));
++
++	return __air_buckpbus_reg_read(phydev, addr);
++}
++
++static int an8801r_cl45_write(struct phy_device *phydev, int devad, u16 reg,
++			      u16 val)
++{
++	return __an8801r_cl45_write(phydev, devad, reg, val);
++}
++
++static int an8801r_cl45_read(struct phy_device *phydev, int devad, u16 reg,
++			     u16 *read_data)
++{
++	int data = 0;
++
++	data = __an8801r_cl45_read(phydev, devad, reg);
++
++	if (data == INVALID_DATA)
++		return -EINVAL;
++
++	*read_data = data;
++
++	return 0;
++}
++
++static int air_sw_reset(struct phy_device *phydev)
++{
++	u32 reg_value;
++	u8 retry = MAX_RETRY;
++
++	/* Software Reset PHY */
++	reg_value = phy_read(phydev, MDIO_DEVAD_NONE, MII_BMCR);
++	reg_value |= BMCR_RESET;
++	phy_write(phydev, MDIO_DEVAD_NONE, MII_BMCR, reg_value);
++	do {
++		mdelay(10);
++		reg_value = phy_read(phydev, MDIO_DEVAD_NONE, MII_BMCR);
++		retry--;
++		if (retry == 0) {
++			printf("AN8801R: Reset fail !\n");
++			return -1;
++		}
++	} while (reg_value & BMCR_RESET);
++
++	return 0;
++}
++
++static int an8801r_led_set_usr_def(struct phy_device *phydev, u8 entity,
++				   u16 polar, u16 on_evt, u16 blk_evt)
++{
++	int err;
++
++	if (polar == AIR_ACTIVE_HIGH)
++		on_evt |= LED_ON_POL;
++	else
++		on_evt &= ~LED_ON_POL;
++
++	on_evt |= LED_ON_EN;
++
++	err = an8801r_cl45_write(phydev, 0x1f, LED_ON_CTRL(entity), on_evt);
++	if (err)
++		return -1;
++
++	return an8801r_cl45_write(phydev, 0x1f, LED_BLK_CTRL(entity), blk_evt);
++}
++
++static int an8801r_led_set_blink(struct phy_device *phydev, u16 blink)
++{
++	int err;
++
++	err = an8801r_cl45_write(phydev, 0x1f, LED_BLK_DUR,
++				 LED_BLINK_DURATION(blink));
++	if (err)
++		return err;
++
++	return an8801r_cl45_write(phydev, 0x1f, LED_ON_DUR,
++				 (LED_BLINK_DURATION(blink) >> 1));
++}
++
++static int an8801r_led_set_mode(struct phy_device *phydev, u8 mode)
++{
++	int err;
++	u16 data;
++
++	err = an8801r_cl45_read(phydev, 0x1f, LED_BCR, &data);
++	if (err)
++		return -1;
++
++	switch (mode) {
++	case AIR_LED_MODE_DISABLE:
++		data &= ~LED_BCR_EXT_CTRL;
++		data &= ~LED_BCR_MODE_MASK;
++		data |= LED_BCR_MODE_DISABLE;
++		break;
++	case AIR_LED_MODE_USER_DEFINE:
++		data |= (LED_BCR_EXT_CTRL | LED_BCR_CLK_EN);
++		break;
++	}
++	return an8801r_cl45_write(phydev, 0x1f, LED_BCR, data);
++}
++
++static int an8801r_led_set_state(struct phy_device *phydev, u8 entity, u8 state)
++{
++	u16 data;
++	int err;
++
++	err = an8801r_cl45_read(phydev, 0x1f, LED_ON_CTRL(entity), &data);
++	if (err)
++		return err;
++
++	if (state)
++		data |= LED_ON_EN;
++	else
++		data &= ~LED_ON_EN;
++
++	return an8801r_cl45_write(phydev, 0x1f, LED_ON_CTRL(entity), data);
++}
++
++static int an8801r_led_init(struct phy_device *phydev)
++{
++	struct an8801r_priv *priv = phydev_cfg(phydev);
++	struct AIR_LED_CFG_T *led_cfg = priv->led_cfg;
++	int ret, led_id;
++	u32 data;
++	u16 led_blink_cfg = priv->led_blink_cfg;
++
++	ret = an8801r_led_set_blink(phydev, led_blink_cfg);
++	if (ret != 0)
++		return ret;
++
++	ret = an8801r_led_set_mode(phydev, AIR_LED_MODE_USER_DEFINE);
++	if (ret != 0) {
++		printf("AN8801R: Fail to set LED mode, ret %d!\n", ret);
++		return ret;
++	}
++
++	for (led_id = AIR_LED0; led_id < MAX_LED_SIZE; led_id++) {
++		ret = an8801r_led_set_state(phydev, led_id, led_cfg[led_id].en);
++		if (ret != 0) {
++			printf("AN8801R: Fail to set LED%d state, ret %d!\n",
++			       led_id, ret);
++			return ret;
++		}
++		if (led_cfg[led_id].en == LED_ENABLE) {
++			data = air_buckpbus_reg_read(phydev, 0x10000054);
++			data |= BIT(led_cfg[led_id].gpio);
++			ret |= air_buckpbus_reg_write(phydev, 0x10000054, data);
++
++			data = air_buckpbus_reg_read(phydev, 0x10000058);
++			data |= LED_GPIO_SEL(led_id, led_cfg[led_id].gpio);
++			ret |= air_buckpbus_reg_write(phydev, 0x10000058, data);
++
++			data = air_buckpbus_reg_read(phydev, 0x10000070);
++			data &= ~BIT(led_cfg[led_id].gpio);
++			ret |= air_buckpbus_reg_write(phydev, 0x10000070, data);
++
++			ret |= an8801r_led_set_usr_def(phydev, led_id,
++				led_cfg[led_id].pol,
++				led_cfg[led_id].on_cfg,
++				led_cfg[led_id].blk_cfg);
++			if (ret != 0) {
++				printf("AN8801R: Fail to set LED%d, ret %d!\n",
++				       led_id, ret);
++				return ret;
++			}
++		}
++	}
++	printf("AN8801R: LED initialize OK !\n");
++	return 0;
++}
++
++static int an8801r_of_init(struct phy_device *phydev)
++{
++	struct an8801r_priv *priv = phydev_cfg(phydev);
++	ofnode node = phy_get_ofnode(phydev);
++	u32 val = 0;
++
++	if (!ofnode_valid(node))
++		return -EINVAL;
++
++	if (ofnode_get_property(node, "airoha,rxclk-delay", NULL)) {
++		if (ofnode_read_u32(node, "airoha,rxclk-delay", &val) != 0) {
++			printf("airoha,rxclk-delay value is invalid.");
++			return -1;
++		}
++		if (val < AIR_RGMII_DELAY_NOSTEP ||
++		    val > AIR_RGMII_DELAY_STEP_7) {
++			printf("airoha,rxclk-delay value %u out of range.",
++			       val);
++			return -1;
++		}
++		priv->rxdelay_force = TRUE;
++		priv->rxdelay_step = val;
++		priv->rxdelay_align = ofnode_read_bool(node,
++						       "airoha,rxclk-delay-align");
++	}
++
++	if (ofnode_get_property(node, "airoha,txclk-delay", NULL)) {
++		if (ofnode_read_u32(node, "airoha,txclk-delay", &val) != 0) {
++			printf("airoha,txclk-delay value is invalid.");
++			return -1;
++		}
++		if (val < AIR_RGMII_DELAY_NOSTEP ||
++		    val > AIR_RGMII_DELAY_STEP_7) {
++			printf("airoha,txclk-delay value %u out of range.",
++			       val);
++			return -1;
++		}
++		priv->txdelay_force = TRUE;
++		priv->txdelay_step = val;
++	}
++
++	return 0;
++}
++
++static int an8801r_rgmii_rxdelay(struct phy_device *phydev, u16 delay, u8 align)
++{
++	u32 reg_val = delay & RGMII_DELAY_STEP_MASK;
++
++	/* align */
++	if (align) {
++		reg_val |= RGMII_RXDELAY_ALIGN;
++		printf("AN8801R: Rxdelay align\n");
++	}
++	reg_val |= RGMII_RXDELAY_FORCE_MODE;
++	air_buckpbus_reg_write(phydev, 0x1021C02C, reg_val);
++	reg_val = air_buckpbus_reg_read(phydev, 0x1021C02C);
++	printf("AN8801R: Force rxdelay = %d(0x%x)\n", delay, reg_val);
++	return 0;
++}
++
++static int an8801r_rgmii_txdelay(struct phy_device *phydev, u16 delay)
++{
++	u32 reg_val = delay & RGMII_DELAY_STEP_MASK;
++
++	reg_val |= RGMII_TXDELAY_FORCE_MODE;
++	air_buckpbus_reg_write(phydev, 0x1021C024, reg_val);
++	reg_val = air_buckpbus_reg_read(phydev, 0x1021C024);
++	printf("AN8801R: Force txdelay = %d(0x%x)\n", delay, reg_val);
++	return 0;
++}
++
++static int an8801r_rgmii_delay_config(struct phy_device *phydev)
++{
++	struct an8801r_priv *priv = phydev_cfg(phydev);
++
++	switch (phydev->interface) {
++	case PHY_INTERFACE_MODE_RGMII_TXID:
++		an8801r_rgmii_txdelay(phydev, AIR_RGMII_DELAY_STEP_4);
++		break;
++	case PHY_INTERFACE_MODE_RGMII_RXID:
++		an8801r_rgmii_rxdelay(phydev, AIR_RGMII_DELAY_NOSTEP, TRUE);
++		break;
++	case PHY_INTERFACE_MODE_RGMII_ID:
++		an8801r_rgmii_txdelay(phydev, AIR_RGMII_DELAY_STEP_4);
++		an8801r_rgmii_rxdelay(phydev, AIR_RGMII_DELAY_NOSTEP, TRUE);
++		break;
++	case PHY_INTERFACE_MODE_RGMII:
++	default:
++		if (priv->rxdelay_force)
++			an8801r_rgmii_rxdelay(phydev, priv->rxdelay_step,
++					      priv->rxdelay_align);
++		if (priv->txdelay_force)
++			an8801r_rgmii_txdelay(phydev, priv->txdelay_step);
++		break;
++	}
++	return 0;
++}
++
++static int an8801r_config_init(struct phy_device *phydev)
++{
++	int ret;
++
++	ret = an8801r_of_init(phydev);
++	if (ret < 0)
++		return ret;
++
++	ret = air_sw_reset(phydev);
++	if (ret < 0)
++		return ret;
++
++	air_buckpbus_reg_write(phydev, 0x11F808D0, 0x180);
++
++	air_buckpbus_reg_write(phydev, 0x1021c004, 0x1);
++	air_buckpbus_reg_write(phydev, 0x10270004, 0x3f);
++	air_buckpbus_reg_write(phydev, 0x10270104, 0xff);
++	air_buckpbus_reg_write(phydev, 0x10270204, 0xff);
++
++	an8801r_rgmii_delay_config(phydev);
++
++	ret = an8801r_led_init(phydev);
++	if (ret != 0) {
++		printf("AN8801R: LED initialize fail, ret %d !\n", ret);
++		return ret;
++	}
++	printf("AN8801R: Initialize OK ! (%s)\n", AN8801R_DRIVER_VERSION);
++	return 0;
++}
++
++static int an8801r_phy_probe(struct phy_device *phydev)
++{
++	u32 reg_value, phy_id, led_id;
++	struct an8801r_priv *priv = NULL;
++
++	reg_value = phy_read(phydev, MDIO_DEVAD_NONE, 2);
++	phy_id = reg_value << 16;
++	reg_value = phy_read(phydev, MDIO_DEVAD_NONE, 3);
++	phy_id |= reg_value;
++	printf("AN8801R: PHY-ID = %x\n", phy_id);
++
++	if (phy_id != AN8801R_PHY_ID) {
++		printf("AN8801R can't be detected.\n");
++		return -1;
++	}
++
++	priv = malloc(sizeof(struct an8801r_priv));
++	if (!priv)
++		return -ENOMEM;
++
++	for (led_id = AIR_LED0; led_id < MAX_LED_SIZE; led_id++)
++		priv->led_cfg[led_id] = led_cfg_dlt[led_id];
++
++	priv->led_blink_cfg  = led_blink_cfg_dlt;
++	priv->rxdelay_force  = rxdelay_force;
++	priv->txdelay_force  = txdelay_force;
++	priv->rxdelay_step   = rxdelay_step;
++	priv->rxdelay_align  = rxdelay_align;
++	priv->txdelay_step   = txdelay_step;
++
++	phydev->priv = priv;
++	return 0;
++}
++
++static int an8801r_config(struct phy_device *phydev)
++{
++	int ret;
++
++	ret = an8801r_phy_probe(phydev);
++	if (ret)
++		return ret;
++
++	return an8801r_config_init(phydev);
++}
++
++static int an8801r_read_status(struct phy_device *phydev)
++{
++	u32 data;
++
++	if (phydev->link == LINK_UP) {
++		debug("AN8801R: SPEED %d\n", phydev->speed);
++		if (phydev->speed == SPEED_1000) {
++			data = air_buckpbus_reg_read(phydev, 0x10005054);
++			data |= BIT(0);
++			air_buckpbus_reg_write(phydev, 0x10005054, data);
++		} else {
++			data = air_buckpbus_reg_read(phydev, 0x10005054);
++			data &= ~BIT(0);
++			air_buckpbus_reg_write(phydev, 0x10005054, data);
++		}
++	}
++	return 0;
++}
++
++static int an8801r_startup(struct phy_device *phydev)
++{
++	int ret;
++
++	ret = genphy_startup(phydev);
++	if (ret)
++		return ret;
++
++	return an8801r_read_status(phydev);
++}
++
++static struct phy_driver AIR_AN8801R_driver = {
++	.name = "Airoha AN8801R",
++	.uid = AN8801R_PHY_ID,
++	.mask = 0x0ffffff0,
++	.features = PHY_GBIT_FEATURES,
++	.config = &an8801r_config,
++	.startup = &an8801r_startup,
++	.shutdown = &genphy_shutdown,
++};
++
++int phy_air_an8801_init(void)
++{
++	phy_register(&AIR_AN8801R_driver);
++	return 0;
++}
+diff -Naur uboot_ori/drivers/net/phy/air_an8801.h uboot/drivers/net/phy/air_an8801.h
+--- uboot_ori/drivers/net/phy/air_an8801.h	1970-01-01 08:00:00.000000000 +0800
++++ uboot/drivers/net/phy/air_an8801.h	2025-04-08 21:49:03.267625112 +0800
+@@ -0,0 +1,177 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++/* FILE NAME:  air_an8801.h
++ * PURPOSE:
++ *      Define Airoha phy driver function
++ *
++ * NOTES:
++ *
++ */
++
++#ifndef __AIR_AN8801_H
++#define __AIR_AN8801_H
++
++/* NAMING DECLARATIONS
++ */
++#define AN8801R_DRIVER_VERSION  "1.0.1"
++
++#define AN8801R_MDIO_PHY_ID     0x1
++#define AN8801R_PHY_ID1         0xc0ff
++#define AN8801R_PHY_ID2         0x0421
++#define AN8801R_PHY_ID     ((u32)((AN8801R_PHY_ID1 << 16) | AN8801R_PHY_ID2))
++
++#define TRUE                    1
++#define FALSE                   0
++#define LINK_UP                 1
++#define LINK_DOWN               0
++
++#define MAX_LED_SIZE            3
++
++#define MAX_RETRY               5
++
++#define AN8801R_EPHY_ADDR           0x11000000
++#define AN8801R_CL22                0x00800000
++
++#define LED_ENABLE                  1
++#define LED_DISABLE                 0
++
++#ifndef BIT
++#define BIT(nr)                     (1 << (nr))
++#endif
++
++#define LED_BCR                     (0x021)
++#define LED_BCR_EXT_CTRL            BIT(15)
++#define LED_BCR_EVT_ALL             BIT(4)
++#define LED_BCR_CLK_EN              BIT(3)
++#define LED_BCR_TIME_TEST           BIT(2)
++#define LED_BCR_MODE_MASK           (3)
++#define LED_BCR_MODE_DISABLE        (0)
++#define LED_BCR_MODE_2LED           (1)
++#define LED_BCR_MODE_3LED_1         (2)
++#define LED_BCR_MODE_3LED_2         (3)
++
++#define LED_ON_DUR                  (0x022)
++#define LED_ON_DUR_MASK             (0xffff)
++
++#define LED_BLK_DUR                 (0x023)
++#define LED_BLK_DUR_MASK            (0xffff)
++
++#define LED_ON_CTRL(i)              (0x024 + ((i) * 2))
++#define LED_ON_EN                   BIT(15)
++#define LED_ON_POL                  BIT(14)
++#define LED_ON_EVT_MASK             (0x7f)
++#define LED_ON_EVT_FORCE            BIT(6)
++#define LED_ON_EVT_HDX              BIT(5)
++#define LED_ON_EVT_FDX              BIT(4)
++#define LED_ON_EVT_LINK_DN          BIT(3)
++#define LED_ON_EVT_LINK_10M         BIT(2)
++#define LED_ON_EVT_LINK_100M        BIT(1)
++#define LED_ON_EVT_LINK_1000M       BIT(0)
++
++#define LED_BLK_CTRL(i)             (0x025 + ((i) * 2))
++#define LED_BLK_EVT_MASK            (0x3ff)
++#define LED_BLK_EVT_FORCE           BIT(9)
++#define LED_BLK_EVT_10M_RX          BIT(5)
++#define LED_BLK_EVT_10M_TX          BIT(4)
++#define LED_BLK_EVT_100M_RX         BIT(3)
++#define LED_BLK_EVT_100M_TX         BIT(2)
++#define LED_BLK_EVT_1000M_RX        BIT(1)
++#define LED_BLK_EVT_1000M_TX        BIT(0)
++
++#define UNIT_LED_BLINK_DURATION     1024
++
++#define RGMII_DELAY_STEP_MASK       0x7
++#define RGMII_RXDELAY_ALIGN         BIT(4)
++#define RGMII_RXDELAY_FORCE_MODE    BIT(24)
++#define RGMII_TXDELAY_FORCE_MODE    BIT(24)
++
++/* For reference only */
++/* User-defined.B */
++/* Link on(1G/100M/10M), no activity */
++#define AIR_LED0_ON \
++	(LED_ON_EVT_LINK_1000M | LED_ON_EVT_LINK_100M | LED_ON_EVT_LINK_10M)
++#define AIR_LED0_BLK     (0x0)
++/* No link on, activity(1G/100M/10M TX/RX) */
++#define AIR_LED1_ON      (0x0)
++#define AIR_LED1_BLK \
++	(LED_BLK_EVT_1000M_TX | LED_BLK_EVT_1000M_RX | \
++	LED_BLK_EVT_100M_TX | LED_BLK_EVT_100M_RX | \
++	LED_BLK_EVT_10M_TX | LED_BLK_EVT_10M_RX)
++/* Link on(100M/10M), activity(100M/10M TX/RX) */
++#define AIR_LED2_ON      (LED_ON_EVT_LINK_100M | LED_ON_EVT_LINK_10M)
++#define AIR_LED2_BLK \
++	(LED_BLK_EVT_100M_TX | LED_BLK_EVT_100M_RX | \
++	LED_BLK_EVT_10M_TX | LED_BLK_EVT_10M_RX)
++/* User-defined.E */
++
++/* Invalid data */
++#define INVALID_DATA            0xffffffff
++
++#define LED_BLINK_DURATION(f)       (UNIT_LED_BLINK_DURATION << (f))
++#define LED_GPIO_SEL(led, gpio)     ((led) << ((gpio) * 3))
++
++/* DATA TYPE DECLARATIONS
++ */
++enum AIR_LED_GPIO_PIN_T {
++	AIR_LED_GPIO1 = 1,
++	AIR_LED_GPIO2,
++	AIR_LED_GPIO3
++};
++
++enum AIR_LED_T {
++	AIR_LED0 = 0,
++	AIR_LED1,
++	AIR_LED2,
++	AIR_LED3
++};
++
++enum AIR_LED_BLK_DUT_T {
++	AIR_LED_BLK_DUR_32M = 0,
++	AIR_LED_BLK_DUR_64M,
++	AIR_LED_BLK_DUR_128M,
++	AIR_LED_BLK_DUR_256M,
++	AIR_LED_BLK_DUR_512M,
++	AIR_LED_BLK_DUR_1024M,
++	AIR_LED_BLK_DUR_LAST
++};
++
++enum AIR_LED_POLARITY {
++	AIR_ACTIVE_LOW = 0,
++	AIR_ACTIVE_HIGH,
++};
++
++enum AIR_LED_MODE_T {
++	AIR_LED_MODE_DISABLE = 0,
++	AIR_LED_MODE_USER_DEFINE,
++	AIR_LED_MODE_LAST
++};
++
++enum AIR_RGMII_DELAY_STEP_T {
++	AIR_RGMII_DELAY_NOSTEP = 0,
++	AIR_RGMII_DELAY_STEP_1 = 1,
++	AIR_RGMII_DELAY_STEP_2 = 2,
++	AIR_RGMII_DELAY_STEP_3 = 3,
++	AIR_RGMII_DELAY_STEP_4 = 4,
++	AIR_RGMII_DELAY_STEP_5 = 5,
++	AIR_RGMII_DELAY_STEP_6 = 6,
++	AIR_RGMII_DELAY_STEP_7 = 7,
++};
++
++struct AIR_LED_CFG_T {
++	u16 en;
++	u16 gpio;
++	u16 pol;
++	u16 on_cfg;
++	u16 blk_cfg;
++};
++
++struct an8801r_priv {
++	struct AIR_LED_CFG_T  led_cfg[MAX_LED_SIZE];
++	u32                   led_blink_cfg;
++	u8                    rxdelay_force;
++	u8                    txdelay_force;
++	u16                   rxdelay_step;
++	u8                    rxdelay_align;
++	u16                   txdelay_step;
++};
++
++#endif /* End of __AIR_AN8801_H */
+diff -Naur uboot_ori/drivers/net/phy/broadcom.c uboot/drivers/net/phy/broadcom.c
+--- uboot_ori/drivers/net/phy/broadcom.c	2025-04-08 21:34:53.912928401 +0800
++++ uboot/drivers/net/phy/broadcom.c	2025-04-08 21:48:16.434117680 +0800
+@@ -372,6 +372,16 @@
+ 	.shutdown = &genphy_shutdown,
+ };
+ 
++static struct phy_driver BCM54210E_driver = {
++	.name = "Broadcom BCM54210E",
++	.uid = 0x600d84a0,
++	.mask = 0xfffffff0,
++	.features = PHY_GBIT_FEATURES,
++	.config = &bcm5461_config,
++	.startup = &bcm54xx_startup,
++	.shutdown = &genphy_shutdown,
++};
++
+ static struct phy_driver BCM5461S_driver = {
+ 	.name = "Broadcom BCM5461S",
+ 	.uid = 0x2060c0,
+@@ -416,6 +426,7 @@
+ {
+ 	phy_register(&BCM54616S_driver);
+ 	phy_register(&BCM54612_driver);
++	phy_register(&BCM54210E_driver);
+ 	phy_register(&BCM5482S_driver);
+ 	phy_register(&BCM5464S_driver);
+ 	phy_register(&BCM5461S_driver);
+diff -Naur uboot_ori/drivers/net/phy/Kconfig uboot/drivers/net/phy/Kconfig
+--- uboot_ori/drivers/net/phy/Kconfig	2025-04-08 21:34:53.912928401 +0800
++++ uboot/drivers/net/phy/Kconfig	2025-04-08 21:48:32.642655070 +0800
+@@ -171,6 +171,12 @@
+ config PHY_REALTEK
+ 	bool "Realtek Ethernet PHYs support"
+ 
++config PHY_MOTORCOMM
++	tristate "Motorcomm PHYs"
++	help
++	  Enables support for Motorcomm network PHYs.
++	  Currently supports the YT85xx Gigabit Ethernet PHYs.
++
+ config RTL8211E_PINE64_GIGABIT_FIX
+ 	bool "Fix gigabit throughput on some Pine64+ models"
+ 	depends on PHY_REALTEK
+diff -Naur uboot_ori/drivers/net/phy/Makefile uboot/drivers/net/phy/Makefile
+--- uboot_ori/drivers/net/phy/Makefile	2025-04-08 21:34:53.912928401 +0800
++++ uboot/drivers/net/phy/Makefile	2025-04-08 21:49:15.575998886 +0800
+@@ -31,3 +31,5 @@
+ obj-$(CONFIG_PHY_MSCC) += mscc.o
+ obj-$(CONFIG_PHY_FIXED) += fixed.o
+ obj-$(CONFIG_PHY_NCSI) += ncsi.o
++obj-$(CONFIG_PHY_AIROHA_AN8801) += air_an8801.o
++obj-$(CONFIG_PHY_MOTORCOMM) += motorcomm.o
+diff -Naur uboot_ori/drivers/net/phy/motorcomm.c uboot/drivers/net/phy/motorcomm.c
+--- uboot_ori/drivers/net/phy/motorcomm.c	1970-01-01 08:00:00.000000000 +0800
++++ uboot/drivers/net/phy/motorcomm.c	2025-04-08 21:49:04.887674826 +0800
+@@ -0,0 +1,517 @@
++// SPDX-License-Identifier: GPL-2.0+
++/*
++ * Motorcomm YT8521S/YT8531S PHY driver.
++ *
++ * Copyright (C) 2024 Motorcomm Technology Co., Ltd.
++ */
++#include <common.h>
++#include <malloc.h>
++#include <phy.h>
++#include <linux/bitfield.h>
++#include <linux/errno.h>
++#include <dm/ofnode.h>
++
++/* Extended Register's Address Offset Register */
++#define YTPHY_PAGE_SELECT			0x1E
++
++/* Extended Register's Data Register */
++#define YTPHY_PAGE_DATA				0x1F
++
++#define YTPHY_DTS_OUTPUT_CLK_DIS		0
++#define YTPHY_DTS_OUTPUT_CLK_25M		25000000
++#define YTPHY_DTS_OUTPUT_CLK_125M		125000000
++
++#define YTPHY_SYNCE_CFG_REG			0xA012
++#define YT8521S_SCR_SYNCE_ENABLE		BIT(5)
++#define YT8531S_SCR_SYNCE_ENABLE		BIT(6)
++/* 1b0 output 25m clock   *default*
++ * 1b1 output 125m clock
++ */
++#define YT8521S_SCR_CLK_FRE_SEL_125M		BIT(3)
++#define YT8521S_SCR_CLK_SRC_MASK		GENMASK(2, 1)
++#define YT8521S_SCR_CLK_SRC_PLL_125M		0
++#define YT8521S_SCR_CLK_SRC_UTP_RX		1
++#define YT8521S_SCR_CLK_SRC_SDS_RX		2
++#define YT8521S_SCR_CLK_SRC_REF_25M		3
++/* 1b0 output 25m clock   *default*
++ * 1b1 output 125m clock
++ */
++#define YT8531S_SCR_CLK_FRE_SEL_125M		BIT(4)
++#define YT8531S_SCR_CLK_SRC_MASK		GENMASK(3, 1)
++#define YT8531S_SCR_CLK_SRC_PLL_125M		0
++#define YT8531S_SCR_CLK_SRC_UTP_RX		1
++#define YT8531S_SCR_CLK_SRC_SDS_RX		2
++#define YT8531S_SCR_CLK_SRC_CLOCK_FROM_DIGITAL	3
++#define YT8531S_SCR_CLK_SRC_REF_25M		4
++#define YT8531S_SCR_CLK_SRC_SSC_25M		5
++
++#define YT8531S_RGMII_CONFIG1_REG		0xA003
++#define YT8531S_RC1R_RX_DELAY_MASK		GENMASK(13, 10)
++#define YT8531S_RC1R_FE_TX_DELAY_MASK		GENMASK(7, 4)
++#define YT8531S_RC1R_GE_TX_DELAY_MASK		GENMASK(3, 0)
++#define YT8531S_RC1R_RGMII_0_000_PS		0
++#define YT8531S_RC1R_RGMII_0_150_PS		1
++#define YT8531S_RC1R_RGMII_0_300_PS		2
++#define YT8531S_RC1R_RGMII_0_450_PS		3
++#define YT8531S_RC1R_RGMII_0_600_PS		4
++#define YT8531S_RC1R_RGMII_0_750_PS		5
++#define YT8531S_RC1R_RGMII_0_900_PS		6
++#define YT8531S_RC1R_RGMII_1_050_PS		7
++#define YT8531S_RC1R_RGMII_1_200_PS		8
++#define YT8531S_RC1R_RGMII_1_350_PS		9
++#define YT8531S_RC1R_RGMII_1_500_PS		10
++#define YT8531S_RC1R_RGMII_1_650_PS		11
++#define YT8531S_RC1R_RGMII_1_800_PS		12
++#define YT8531S_RC1R_RGMII_1_950_PS		13
++#define YT8531S_RC1R_RGMII_2_100_PS		14
++#define YT8531S_RC1R_RGMII_2_250_PS		15
++
++/* Phy gmii clock gating Register */
++#define YT8531S_CLOCK_GATING_REG		0xC
++#define YT8531S_CGR_RX_CLK_EN			BIT(12)
++
++/* Specific Status Register */
++#define YTPHY_SPECIFIC_STATUS_REG		0x11
++#define YTPHY_SSR_DUPLEX_MASK			BIT(13)
++#define YTPHY_SSR_DUPLEX_SHIFT			13
++#define YTPHY_SSR_SPEED_MASK			((0x3 << 14) | BIT(9))
++#define YTPHY_SSR_SPEED_10M			((0x0 << 14))
++#define YTPHY_SSR_SPEED_100M			((0x1 << 14))
++#define YTPHY_SSR_SPEED_1000M			((0x2 << 14))
++
++#define YT8531S_EXTREG_SLEEP_CONTROL1_REG	0x27
++#define YT8531S_ESC1R_SLEEP_SW			BIT(15)
++#define YT8531S_ESC1R_PLLON_SLP			BIT(14)
++
++#define YT8531S_CHIP_CONFIG_REG			0xA001
++#define YT8531S_CCR_SW_RST			BIT(15)
++/* 1b0 disable 1.9ns rxc clock delay  *default*
++ * 1b1 enable 1.9ns rxc clock delay
++ */
++#define YT8531S_CCR_RXC_DLY_EN			BIT(8)
++#define YT8531S_CCR_RXC_DLY_1_900_PS		1900
++
++/* bits in struct ytphy_plat_priv->flag */
++#define AUTO_SLEEP_DISABLED			BIT(0)
++#define KEEP_PLL_ENABLED			BIT(1)
++
++struct ytphy_plat_priv {
++	u32 rx_delay_ps;
++	u32 tx_delay_ps;
++	u32 clk_out_frequency;
++	u32 flag;
++};
++
++/**
++ * struct ytphy_cfg_reg_map - map a config value to a register value
++ * @cfg: value in device configuration
++ * @reg: value in the register
++ */
++struct ytphy_cfg_reg_map {
++	u32 cfg;
++	u32 reg;
++};
++
++static const struct ytphy_cfg_reg_map ytphy_rgmii_delays[] = {
++	/* for tx delay / rx delay with YT8531S_CCR_RXC_DLY_EN is not set. */
++	{ 0,	YT8531S_RC1R_RGMII_0_000_PS },
++	{ 150,	YT8531S_RC1R_RGMII_0_150_PS },
++	{ 300,	YT8531S_RC1R_RGMII_0_300_PS },
++	{ 450,	YT8531S_RC1R_RGMII_0_450_PS },
++	{ 600,	YT8531S_RC1R_RGMII_0_600_PS },
++	{ 750,	YT8531S_RC1R_RGMII_0_750_PS },
++	{ 900,	YT8531S_RC1R_RGMII_0_900_PS },
++	{ 1050,	YT8531S_RC1R_RGMII_1_050_PS },
++	{ 1200,	YT8531S_RC1R_RGMII_1_200_PS },
++	{ 1350,	YT8531S_RC1R_RGMII_1_350_PS },
++	{ 1500,	YT8531S_RC1R_RGMII_1_500_PS },
++	{ 1650,	YT8531S_RC1R_RGMII_1_650_PS },
++	{ 1800,	YT8531S_RC1R_RGMII_1_800_PS },
++	{ 1950,	YT8531S_RC1R_RGMII_1_950_PS },	/* default tx/rx delay */
++	{ 2100,	YT8531S_RC1R_RGMII_2_100_PS },
++	{ 2250,	YT8531S_RC1R_RGMII_2_250_PS },
++
++	/* only for rx delay with YT8531S_CCR_RXC_DLY_EN is set. */
++	{ 0    + YT8531S_CCR_RXC_DLY_1_900_PS,	YT8531S_RC1R_RGMII_0_000_PS },
++	{ 150  + YT8531S_CCR_RXC_DLY_1_900_PS,	YT8531S_RC1R_RGMII_0_150_PS },
++	{ 300  + YT8531S_CCR_RXC_DLY_1_900_PS,	YT8531S_RC1R_RGMII_0_300_PS },
++	{ 450  + YT8531S_CCR_RXC_DLY_1_900_PS,	YT8531S_RC1R_RGMII_0_450_PS },
++	{ 600  + YT8531S_CCR_RXC_DLY_1_900_PS,	YT8531S_RC1R_RGMII_0_600_PS },
++	{ 750  + YT8531S_CCR_RXC_DLY_1_900_PS,	YT8531S_RC1R_RGMII_0_750_PS },
++	{ 900  + YT8531S_CCR_RXC_DLY_1_900_PS,	YT8531S_RC1R_RGMII_0_900_PS },
++	{ 1050 + YT8531S_CCR_RXC_DLY_1_900_PS,	YT8531S_RC1R_RGMII_1_050_PS },
++	{ 1200 + YT8531S_CCR_RXC_DLY_1_900_PS,	YT8531S_RC1R_RGMII_1_200_PS },
++	{ 1350 + YT8531S_CCR_RXC_DLY_1_900_PS,	YT8531S_RC1R_RGMII_1_350_PS },
++	{ 1500 + YT8531S_CCR_RXC_DLY_1_900_PS,	YT8531S_RC1R_RGMII_1_500_PS },
++	{ 1650 + YT8531S_CCR_RXC_DLY_1_900_PS,	YT8531S_RC1R_RGMII_1_650_PS },
++	{ 1800 + YT8531S_CCR_RXC_DLY_1_900_PS,	YT8531S_RC1R_RGMII_1_800_PS },
++	{ 1950 + YT8531S_CCR_RXC_DLY_1_900_PS,	YT8531S_RC1R_RGMII_1_950_PS },
++	{ 2100 + YT8531S_CCR_RXC_DLY_1_900_PS,	YT8531S_RC1R_RGMII_2_100_PS },
++	{ 2250 + YT8531S_CCR_RXC_DLY_1_900_PS,	YT8531S_RC1R_RGMII_2_250_PS }
++};
++
++static u32 ytphy_get_delay_reg_value(struct phy_device *phydev,
++				     u32 val,
++				     u16 *rxc_dly_en)
++{
++	int tb_size = ARRAY_SIZE(ytphy_rgmii_delays);
++	int tb_size_half = tb_size / 2;
++	int i;
++
++	/* when rxc_dly_en is NULL, it is get the delay for tx, only half of
++	 * tb_size is valid.
++	 */
++	if (!rxc_dly_en)
++		tb_size = tb_size_half;
++
++	for (i = 0; i < tb_size; i++) {
++		if (ytphy_rgmii_delays[i].cfg == val) {
++			if (rxc_dly_en && i < tb_size_half)
++				*rxc_dly_en = 0;
++			return ytphy_rgmii_delays[i].reg;
++		}
++	}
++
++	pr_warn("Unsupported value %d, using default (%u)\n",
++		val, YT8531S_RC1R_RGMII_1_950_PS);
++
++	/* when rxc_dly_en is not NULL, it is get the delay for rx.
++	 * The rx default in dts and ytphy_rgmii_clk_delay_config is 1950 ps,
++	 * so YT8531S_CCR_RXC_DLY_EN should not be set.
++	 */
++	if (rxc_dly_en)
++		*rxc_dly_en = 0;
++
++	return YT8531S_RC1R_RGMII_1_950_PS;
++}
++
++static int ytphy_write_ext(struct phy_device *phydev, u16 regnum, u16 val)
++{
++	int ret;
++
++	ret = phy_write(phydev, MDIO_DEVAD_NONE, YTPHY_PAGE_SELECT, regnum);
++	if (ret < 0)
++		return ret;
++
++	return phy_write(phydev, MDIO_DEVAD_NONE, YTPHY_PAGE_DATA, val);
++}
++
++static int ytphy_read_ext(struct phy_device *phydev, u16 regnum)
++{
++	int ret;
++
++	ret = phy_write(phydev, MDIO_DEVAD_NONE, YTPHY_PAGE_SELECT, regnum);
++	if (ret < 0)
++		return ret;
++
++	return phy_read(phydev, MDIO_DEVAD_NONE, YTPHY_PAGE_DATA);
++}
++
++static int ytphy_rgmii_clk_delay_config(struct phy_device *phydev)
++{
++	struct ytphy_plat_priv *priv = phydev->priv;
++	u16 rxc_dly_en = YT8531S_CCR_RXC_DLY_EN;
++	u32 rx_reg, tx_reg;
++	u16 mask, val = 0;
++	u16 reg_val;
++	int ret;
++
++	rx_reg = ytphy_get_delay_reg_value(phydev, priv->rx_delay_ps,
++					   &rxc_dly_en);
++	tx_reg = ytphy_get_delay_reg_value(phydev, priv->tx_delay_ps,
++					   NULL);
++
++	switch (phydev->interface) {
++	case PHY_INTERFACE_MODE_RGMII:
++		rxc_dly_en = 0;
++		break;
++	case PHY_INTERFACE_MODE_RGMII_RXID:
++		val |= FIELD_PREP(YT8531S_RC1R_RX_DELAY_MASK, rx_reg);
++		break;
++	case PHY_INTERFACE_MODE_RGMII_TXID:
++		rxc_dly_en = 0;
++		val |= FIELD_PREP(YT8531S_RC1R_GE_TX_DELAY_MASK, tx_reg);
++		break;
++	case PHY_INTERFACE_MODE_RGMII_ID:
++		val |= FIELD_PREP(YT8531S_RC1R_RX_DELAY_MASK, rx_reg) |
++		       FIELD_PREP(YT8531S_RC1R_GE_TX_DELAY_MASK, tx_reg);
++		break;
++	default: /* do not support other modes */
++		return -EOPNOTSUPP;
++	}
++
++	reg_val = ytphy_read_ext(phydev, YT8531S_CHIP_CONFIG_REG);
++	reg_val &= ~YT8531S_CCR_RXC_DLY_EN;
++	reg_val |= rxc_dly_en;
++	ret = ytphy_write_ext(phydev, YT8531S_CHIP_CONFIG_REG, reg_val);
++	if (ret < 0)
++		return ret;
++
++	/* Generally, it is not necessary to adjust YT8531S_RC1R_FE_TX_DELAY */
++	mask = YT8531S_RC1R_RX_DELAY_MASK | YT8531S_RC1R_GE_TX_DELAY_MASK;
++	reg_val = ytphy_read_ext(phydev, YT8531S_RGMII_CONFIG1_REG);
++	reg_val &= ~mask;
++	reg_val |= val;
++
++	return ytphy_write_ext(phydev, YT8531S_RGMII_CONFIG1_REG, reg_val);
++}
++
++static void ytphy_dt_parse(struct phy_device *phydev)
++{
++	struct ytphy_plat_priv *priv = phydev->priv;
++
++	priv->clk_out_frequency =
++		ofnode_read_u32_default(phydev->node,
++					"motorcomm,clk-out-frequency-hz",
++					YTPHY_DTS_OUTPUT_CLK_DIS);
++	priv->rx_delay_ps =
++		ofnode_read_u32_default(phydev->node,
++					"rx-internal-delay-ps",
++					YT8531S_RC1R_RGMII_1_950_PS);
++	priv->tx_delay_ps =
++		ofnode_read_u32_default(phydev->node,
++					"tx-internal-delay-ps",
++					YT8531S_RC1R_RGMII_1_950_PS);
++
++	if (ofnode_read_bool(phydev->node, "motorcomm,auto-sleep-disabled"))
++		priv->flag |= AUTO_SLEEP_DISABLED;
++
++	if (ofnode_read_bool(phydev->node, "motorcomm,keep-pll-enabled"))
++		priv->flag |= KEEP_PLL_ENABLED;
++}
++
++static int ytphy_parse_status(struct phy_device *phydev)
++{
++	int speed, speed_mode;
++	int val;
++
++	val = phy_read(phydev, MDIO_DEVAD_NONE, YTPHY_SPECIFIC_STATUS_REG);
++	if (val < 0)
++		return val;
++
++	speed_mode = val & YTPHY_SSR_SPEED_MASK;
++	switch (speed_mode) {
++	case YTPHY_SSR_SPEED_1000M:
++		speed = SPEED_1000;
++		break;
++	case YTPHY_SSR_SPEED_100M:
++		speed = SPEED_100;
++		break;
++	case YTPHY_SSR_SPEED_10M:
++		speed = SPEED_10;
++		break;
++	default:
++		pr_warn("UNKNOWN SPEED\n");
++		return -EINVAL;
++	}
++
++	phydev->speed = speed;
++	phydev->duplex = (val & YTPHY_SSR_DUPLEX_MASK) >>
++				YTPHY_SSR_DUPLEX_SHIFT;
++
++	return 0;
++}
++
++static int yt8521s_config(struct phy_device *phydev)
++{
++	struct ytphy_plat_priv *priv = phydev->priv;
++	u16 mask, val;
++	u16 reg_val;
++	int ret;
++
++	ret = genphy_config_aneg(phydev);
++	if (ret < 0)
++		return ret;
++
++	ytphy_dt_parse(phydev);
++	switch (priv->clk_out_frequency) {
++	case YTPHY_DTS_OUTPUT_CLK_DIS:
++		mask = YT8521S_SCR_SYNCE_ENABLE;
++		val = 0;
++		break;
++	case YTPHY_DTS_OUTPUT_CLK_25M:
++		mask = YT8521S_SCR_SYNCE_ENABLE | YT8521S_SCR_CLK_SRC_MASK |
++			   YT8521S_SCR_CLK_FRE_SEL_125M;
++		val = YT8521S_SCR_SYNCE_ENABLE |
++			  FIELD_PREP(YT8521S_SCR_CLK_SRC_MASK,
++				     YT8521S_SCR_CLK_SRC_REF_25M);
++		break;
++	case YTPHY_DTS_OUTPUT_CLK_125M:
++		mask = YT8521S_SCR_SYNCE_ENABLE | YT8521S_SCR_CLK_SRC_MASK |
++			   YT8521S_SCR_CLK_FRE_SEL_125M;
++		val = YT8521S_SCR_SYNCE_ENABLE | YT8521S_SCR_CLK_FRE_SEL_125M |
++			  FIELD_PREP(YT8521S_SCR_CLK_SRC_MASK,
++				     YT8521S_SCR_CLK_SRC_PLL_125M);
++		break;
++	default:
++		pr_warn("Freq err:%u\n", priv->clk_out_frequency);
++		return -EINVAL;
++	}
++
++	reg_val = ytphy_read_ext(phydev, YTPHY_SYNCE_CFG_REG);
++	reg_val &= ~mask;
++	reg_val |= val;
++	ret = ytphy_write_ext(phydev, YTPHY_SYNCE_CFG_REG, reg_val);
++	if (ret < 0)
++		return ret;
++
++	ret = ytphy_rgmii_clk_delay_config(phydev);
++	if (ret < 0)
++		return ret;
++
++	if (priv->flag & AUTO_SLEEP_DISABLED) {
++		/* disable auto sleep */
++		reg_val = ytphy_read_ext(phydev,
++					 YT8531S_EXTREG_SLEEP_CONTROL1_REG);
++		reg_val &= ~YT8531S_ESC1R_SLEEP_SW;
++		ret = ytphy_write_ext(phydev,
++				      YT8531S_EXTREG_SLEEP_CONTROL1_REG,
++				      reg_val);
++		if (ret < 0)
++			return ret;
++	}
++
++	if (priv->flag & KEEP_PLL_ENABLED) {
++		/* enable RXC clock when no wire plug */
++		reg_val = ytphy_read_ext(phydev, YT8531S_CLOCK_GATING_REG);
++		reg_val &= ~YT8531S_CGR_RX_CLK_EN;
++		ret = ytphy_write_ext(phydev,
++				      YT8531S_CLOCK_GATING_REG,
++				      reg_val);
++		if (ret < 0)
++			return ret;
++	}
++
++	return 0;
++}
++
++static int yt8531s_startup(struct phy_device *phydev)
++{
++	int ret;
++
++	ret = genphy_update_link(phydev);
++	if (ret)
++		return ret;
++
++	ret = ytphy_parse_status(phydev);
++	if (ret)
++		return ret;
++
++	return 0;
++}
++
++static int yt8531s_config(struct phy_device *phydev)
++{
++	struct ytphy_plat_priv *priv = phydev->priv;
++	u16 mask, val;
++	u16 reg_val;
++	int ret;
++
++	ret = genphy_config_aneg(phydev);
++	if (ret < 0)
++		return ret;
++
++	ytphy_dt_parse(phydev);
++	switch (priv->clk_out_frequency) {
++	case YTPHY_DTS_OUTPUT_CLK_DIS:
++		mask = YT8531S_SCR_SYNCE_ENABLE;
++		val = 0;
++		break;
++	case YTPHY_DTS_OUTPUT_CLK_25M:
++		mask = YT8531S_SCR_SYNCE_ENABLE | YT8531S_SCR_CLK_SRC_MASK |
++			   YT8531S_SCR_CLK_FRE_SEL_125M;
++		val = YT8531S_SCR_SYNCE_ENABLE |
++			  FIELD_PREP(YT8531S_SCR_CLK_SRC_MASK,
++				     YT8531S_SCR_CLK_SRC_REF_25M);
++		break;
++	case YTPHY_DTS_OUTPUT_CLK_125M:
++		mask = YT8531S_SCR_SYNCE_ENABLE | YT8531S_SCR_CLK_SRC_MASK |
++			   YT8531S_SCR_CLK_FRE_SEL_125M;
++		val = YT8531S_SCR_SYNCE_ENABLE | YT8531S_SCR_CLK_FRE_SEL_125M |
++			  FIELD_PREP(YT8531S_SCR_CLK_SRC_MASK,
++				     YT8531S_SCR_CLK_SRC_PLL_125M);
++		break;
++	default:
++		pr_warn("Freq err:%u\n", priv->clk_out_frequency);
++		return -EINVAL;
++	}
++
++	reg_val = ytphy_read_ext(phydev, YTPHY_SYNCE_CFG_REG);
++	reg_val &= ~mask;
++	reg_val |= val;
++	ret = ytphy_write_ext(phydev, YTPHY_SYNCE_CFG_REG, reg_val);
++	if (ret < 0)
++		return ret;
++
++	ret = ytphy_rgmii_clk_delay_config(phydev);
++	if (ret < 0)
++		return ret;
++
++	if (priv->flag & AUTO_SLEEP_DISABLED) {
++		/* disable auto sleep */
++		reg_val = ytphy_read_ext(phydev,
++					 YT8531S_EXTREG_SLEEP_CONTROL1_REG);
++		reg_val &= ~YT8531S_ESC1R_SLEEP_SW;
++		ret = ytphy_write_ext(phydev,
++				      YT8531S_EXTREG_SLEEP_CONTROL1_REG,
++				      reg_val);
++		if (ret < 0)
++			return ret;
++	}
++
++	if (priv->flag & KEEP_PLL_ENABLED) {
++		/* enable RXC clock when no wire plug */
++		reg_val = ytphy_read_ext(phydev, YT8531S_CLOCK_GATING_REG);
++		reg_val &= ~YT8531S_CGR_RX_CLK_EN;
++		ret = ytphy_write_ext(phydev,
++				      YT8531S_CLOCK_GATING_REG,
++				      reg_val);
++		if (ret < 0)
++			return ret;
++	}
++
++	return 0;
++}
++
++static int yt8531s_probe(struct phy_device *phydev)
++{
++	struct ytphy_plat_priv	*priv;
++
++	priv = calloc(1, sizeof(struct ytphy_plat_priv));
++	if (!priv)
++		return -ENOMEM;
++
++	phydev->priv = priv;
++
++	return 0;
++}
++
++static struct phy_driver motorcomm8521S = {
++	.name		= "YT8521S Gigabit Ethernet Transceiver",
++	.uid		= 0x0000011a,
++	.mask		= 0xffffffff,
++	.features	= PHY_GBIT_FEATURES,
++	.probe		= &yt8531s_probe,
++	.config		= &yt8521s_config,
++	.startup	= &yt8531s_startup,
++	.shutdown	= &genphy_shutdown,
++};
++
++static struct phy_driver motorcomm8531S = {
++	.name		= "YT8531S Gigabit Ethernet Transceiver",
++	.uid		= 0x4f51e91a,
++	.mask		= 0xffffffff,
++	.features	= PHY_GBIT_FEATURES,
++	.probe		= &yt8531s_probe,
++	.config		= &yt8531s_config,
++	.startup	= &yt8531s_startup,
++	.shutdown	= &genphy_shutdown,
++};
++
++int phy_yt_init(void)
++{
++	phy_register(&motorcomm8521S);
++	phy_register(&motorcomm8531S);
++
++	return 0;
++}
+diff -Naur uboot_ori/drivers/net/phy/ncsi.c uboot/drivers/net/phy/ncsi.c
+--- uboot_ori/drivers/net/phy/ncsi.c	2025-04-08 21:34:53.912928401 +0800
++++ uboot/drivers/net/phy/ncsi.c	2025-04-08 21:50:03.025358539 +0800
+@@ -5,8 +5,6 @@
+  * Copyright (C) 2019, IBM Corporation.
+  */
+ 
+-#define DEBUG 1
+-
+ #include <common.h>
+ #include <malloc.h>
+ #include <phy.h>
+diff -Naur uboot_ori/drivers/net/phy/phy.c uboot/drivers/net/phy/phy.c
+--- uboot_ori/drivers/net/phy/phy.c	2025-04-08 21:34:53.912928401 +0800
++++ uboot/drivers/net/phy/phy.c	2025-04-08 21:51:16.883239259 +0800
+@@ -531,6 +531,13 @@
+ #ifdef CONFIG_PHY_NCSI
+ 	phy_ncsi_init();
+ #endif
++#ifdef CONFIG_PHY_AIROHA_AN8801
++	phy_air_an8801_init();
++#endif
++
++#ifdef CONFIG_PHY_MOTORCOMM
++	phy_yt_init();
++#endif
+ 	return 0;
+ }
+ 
+@@ -937,7 +944,8 @@
+ #endif
+ 
+ #ifdef CONFIG_PHY_NCSI
+-	phydev = phy_device_create(bus, 0, PHY_NCSI_ID, false, interface);
++	if (interface == PHY_INTERFACE_MODE_NCSI)
++		phydev = phy_device_create(bus, 0, PHY_NCSI_ID, false, interface);
+ #endif
+ 
+ 	if(addr == 32)
+@@ -996,3 +1004,10 @@
+ 
+ 	return -1;
+ }
++
++bool phy_interface_is_ncsi(void)
++{
++	struct eth_pdata *pdata = dev_get_platdata(eth_get_dev());
++
++	return pdata->phy_interface == PHY_INTERFACE_MODE_NCSI;
++}
+diff -Naur uboot_ori/drivers/net/phy/realtek.c uboot/drivers/net/phy/realtek.c
+--- uboot_ori/drivers/net/phy/realtek.c	2025-04-08 21:34:53.912928401 +0800
++++ uboot/drivers/net/phy/realtek.c	2025-04-08 21:51:24.507418376 +0800
+@@ -391,12 +391,26 @@
+ 	.writeext = &rtl8211f_phy_extwrite,
+ };
+ 
++/* Support for RTL8211F-VD PHY */
++static struct phy_driver RTL8211F_VD_driver = {
++	.name = "RealTek RTL8211F-VD",
++	.uid = 0x1cc870,
++	.mask = 0xfffff0,
++	.features = PHY_GBIT_FEATURES,
++	.config = &rtl8211f_config,
++	.startup = &rtl8211f_startup,
++	.shutdown = &genphy_shutdown,
++	.readext = &rtl8211f_phy_extread,
++	.writeext = &rtl8211f_phy_extwrite,
++};
++
+ int phy_realtek_init(void)
+ {
+ 	phy_register(&RTL8211B_driver);
+ 	phy_register(&RTL8211E_driver);
+ 	phy_register(&RTL8211F_driver);
+ 	phy_register(&RTL8211FD_VX_driver);
++	phy_register(&RTL8211F_VD_driver);
+ 	phy_register(&RTL8211DN_driver);
+ 
+ 	return 0;
+diff -Naur uboot_ori/include/phy.h uboot/include/phy.h
+--- uboot_ori/include/phy.h	2025-04-08 21:34:54.316929933 +0800
++++ uboot/include/phy.h	2025-04-08 21:52:24.980748419 +0800
+@@ -253,6 +253,8 @@
+ int phy_mscc_init(void);
+ int phy_fixed_init(void);
+ int phy_ncsi_init(void);
++int phy_air_an8801_init(void);
++int phy_yt_init(void);
+ 
+ int board_phy_config(struct phy_device *phydev);
+ int get_phy_id(struct mii_dev *bus, int addr, int devad, u32 *phy_id);
+@@ -287,6 +289,8 @@
+ 		phydev->interface <= PHY_INTERFACE_MODE_QSGMII;
+ }
+ 
++bool phy_interface_is_ncsi(void);
++
+ /* PHY UIDs for various PHYs that are referenced in external code */
+ #define PHY_UID_CS4340  	0x13e51002
+ #define PHY_UID_CS4223  	0x03e57003
+

@@ -1,0 +1,27 @@
+From 1fc6a749ff3b2edd91829dd810c519f1b52ab615 Mon Sep 17 00:00:00 2001
+From: santhoshs <santhoshs@ami.com>
+Date: Fri, 30 May 2025 06:57:46 +0000
+Subject: [PATCH] Updated memory size allocation in SDRAM_AST2600
+
+Signed-off-by: santhoshs <santhoshs@ami.com>
+---
+ uboot/drivers/ram/aspeed/sdram_ast2600.c | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git uboot_orc/drivers/ram/aspeed/sdram_ast2600.c uboot/drivers/ram/aspeed/sdram_ast2600.c
+index 3e8eba9a..9273522a 100644
+--- uboot_orc/drivers/ram/aspeed/sdram_ast2600.c
++++ uboot/drivers/ram/aspeed/sdram_ast2600.c
+@@ -920,7 +920,9 @@ static int ast2600_sdrammc_probe(struct udevice *dev)
+ 	if (reg & SCU_SDRAM_INIT_READY_MASK) {
+ 		printf("already initialized, ");
+ 		setbits_le32(priv->scu + AST_SCU_HANDSHAKE, SCU_HANDSHAKE_MASK);
++		ast2600_sdrammc_unlock(priv);
+ 		ast2600_sdrammc_update_size(priv);
++		ast2600_sdrammc_lock(priv);
+ 		return 0;
+ 	}
+ 
+-- 
+2.34.1
+

@@ -1,0 +1,3844 @@
+diff -Naur uboot/oem/ami/standalone/cmd_nettest.c uboot_latest/oem/ami/standalone/cmd_nettest.c
+--- uboot/oem/ami/standalone/cmd_nettest.c	2025-08-14 18:17:05.349444727 +0530
++++ uboot_latest/oem/ami/standalone/cmd_nettest.c	2025-08-14 18:18:32.591788661 +0530
+@@ -1,5 +1,5 @@
+ /*
+-(C) Copyright 2020
++(C) Copyright 2025
+  American Megatrends Inc
+ 
+  This program is free software; you can redistribute it and/or
+@@ -18,6 +18,11 @@
+  MA 02111-1307 USA
+ */
+ 
++/*
++ * @author ARJUN C R arjuncr@ami.com
++ *
++*/
++
+ #include <common.h>
+ #include <command.h>
+ #include "common_std.h"
+diff -Naur uboot/oem/ami/standalone/cmd_slt.c uboot_latest/oem/ami/standalone/cmd_slt.c
+--- uboot/oem/ami/standalone/cmd_slt.c	2025-08-14 18:17:05.349474252 +0530
++++ uboot_latest/oem/ami/standalone/cmd_slt.c	2025-08-14 18:18:32.591877712 +0530
+@@ -1,5 +1,5 @@
+ /*
+-(C) Copyright 2020
++(C) Copyright 2025
+  American Megatrends Inc
+ 
+  This program is free software; you can redistribute it and/or
+@@ -18,6 +18,11 @@
+  MA 02111-1307 USA
+ */
+ 
++/*
++ * @author ARJUN C R arjuncr@ami.com
++ *
++*/
++
+ #include <common.h>
+ #include <command.h>
+ #include "common_std.h"
+diff -Naur uboot/oem/ami/standalone/common_std.c uboot_latest/oem/ami/standalone/common_std.c
+--- uboot/oem/ami/standalone/common_std.c	2025-08-14 18:17:05.349495613 +0530
++++ uboot_latest/oem/ami/standalone/common_std.c	2025-08-14 18:18:32.591958816 +0530
+@@ -1,5 +1,5 @@
+ /*
+-(C) Copyright 2020
++(C) Copyright 2025
+  American Megatrends Inc
+ 
+  This program is free software; you can redistribute it and/or
+@@ -18,6 +18,11 @@
+  MA 02111-1307 USA
+ */
+ 
++/*
++ * @author ARJUN C R arjuncr@ami.com
++ *
++*/
++
+ #include <common.h>
+ #include "../fmh/cmd_fmh.h"
+ #include"common_std.h"
+diff -Naur uboot/oem/ami/standalone/Makefile uboot_latest/oem/ami/standalone/Makefile
+--- uboot/oem/ami/standalone/Makefile	2025-08-14 18:17:05.349542631 +0530
++++ uboot_latest/oem/ami/standalone/Makefile	2025-08-14 18:18:32.592067943 +0530
+@@ -1,5 +1,5 @@
+ #
+-# (C) Copyright 2020
++# (C) Copyright 2025
+ # American Megatrends Inc
+ #
+ # This program is free software; you can redistribute it and/or
+@@ -18,6 +18,8 @@
+ # MA 02111-1307 USA
+ #
+ 
++# @author ARJUN C R arjuncr@ami.com
++
+ LIB	:= $(obj)libnettest.o
+ 
+ obj-y	+= common_std.o
+diff -Naur uboot/oem/ami/standalone/nettest/comminf.h uboot_latest/oem/ami/standalone/nettest/comminf.h
+--- uboot/oem/ami/standalone/nettest/comminf.h	2025-08-14 18:17:05.349623036 +0530
++++ uboot_latest/oem/ami/standalone/nettest/comminf.h	2025-08-14 18:18:32.592192155 +0530
+@@ -3,87 +3,89 @@
+  * Copyright (C) ASPEED Technology Inc.
+  */
+ 
+-#ifndef COMMINF_H
+-#define COMMINF_H
+-
+-#include "swfunc.h"
+-
+-#include "mac.h"
+-
+-//---------------------------------------------------------
+-// Print Message
+-//---------------------------------------------------------
+-// for function
+-#define FP_LOG                                   0
+-#define FP_IO                                    1
+-#define STD_OUT                                  2
+-
+-#define PRINTF(i, ...)                                                         \
+-	do {                                                                   \
+-		if (i == STD_OUT) {                                            \
+-			fprintf(stdout, __VA_ARGS__);                          \
+-			break;                                                 \
+-		}                                                              \
+-		if ((display_lantest_log_msg != 0) && (i == FP_LOG)) {         \
+-			fprintf(stdout, "[Log]:   ");                          \
+-			fprintf(stdout, __VA_ARGS__);                          \
+-		}                                                              \
+-	} while (0);
+-
+-//---------------------------------------------------------
+-// Function
+-//---------------------------------------------------------
+-  #define SWAP_4B( x )                                                             \
+-                                                 ( ( ( ( x ) & 0xff000000 ) >> 24) \
+-                                                 | ( ( ( x ) & 0x00ff0000 ) >>  8) \
+-                                                 | ( ( ( x ) & 0x0000ff00 ) <<  8) \
+-                                                 | ( ( ( x ) & 0x000000ff ) << 24) \
+-                                                 )
+-  #define SWAP_2B( x )                                                             \
+-                                                 ( ( ( ( x ) & 0xff00     ) >>  8) \
+-                                                 | ( ( ( x ) & 0x00ff     ) <<  8) \
+-                                                 )
+-
+-  #define SWAP_2B_BEDN( x )                      ( SWAP_2B ( x ) )
+-  #define SWAP_2B_LEDN( x )                      ( x )
+-  #define SWAP_4B_BEDN( x )                      ( SWAP_4B ( x ) )
+-  #define SWAP_4B_LEDN( x )                      ( x )
+-
+-  #define SWAP_4B_BEDN_NCSI( x )                 ( SWAP_4B( x ) )
+-  #define SWAP_4B_LEDN_NCSI( x )                 ( x )
+-
+-#if defined(ENABLE_BIG_ENDIAN_MEM)
+-  #define SWAP_4B_LEDN_MEM( x )                  ( SWAP_4B( x ) )
+-#else
+-  #define SWAP_4B_LEDN_MEM( x )                  ( x )
+-#endif
+-#if defined(ENABLE_BIG_ENDIAN_REG)
+-  #define SWAP_4B_LEDN_REG( x )                  ( SWAP_4B( x ) )
+-#else
+-  #define SWAP_4B_LEDN_REG( x )                  ( x )
+-#endif
+-
+-#define DELAY( x )                       	udelay( ( x ) * 1000 )
+-#define GET_CAHR                         	getc
+-
+-//---------------------------------------------------------
+-// Default argument
+-//---------------------------------------------------------
+-#define  DEF_GUSER_DEF_PACKET_VAL                0xaaaaaaaa     //0xff00ff00, 0xf0f0f0f0, 0xcccccccc, 0x55aa55aa, 0x5a5a5a5a, 0x66666666
+-#define  DEF_GIOTIMINGBUND                       2
+-#define  DEF_GPHY_ADR                            0
+-#define  DEF_GTESTMODE                           0              //[0]0: no burst mode, 1: 0xff, 2: 0x55, 3: random, 4: ARP, 5: ARP, 6: IO timing, 7: IO timing+IO Strength
+-#define  DEF_GLOOP_MAX                           1
+-#define  DEF_GCTRL                               0
+-
+-#define  SET_1GBPS                               BIT(0)
+-#define  SET_100MBPS                             BIT(1)
+-#define  SET_10MBPS                              BIT(2)
+-#define  SET_1G_100M_10MBPS                      (SET_1GBPS | SET_100MBPS | SET_10MBPS)
+-#define  SET_100M_10MBPS                         (SET_100MBPS | SET_10MBPS)
+-
+-#define  DEF_GSPEED                              SET_1G_100M_10MBPS
+-#define  DEF_GARPNUMCNT                          0
++#ifndef COMMINF_H
++#define COMMINF_H
++
++#include "swfunc.h"
++
++#include "mac.h"
++
++//---------------------------------------------------------
++// Print Message
++//---------------------------------------------------------
++// for function
++#define FP_LOG                                   0
++#define FP_IO                                    1
++#define STD_OUT                                  2
++
++#define PRINTF(i, ...)                                                         \
++	do {                                                                   \
++		if (i == STD_OUT) {                                            \
++			fprintf(stdout, __VA_ARGS__);                          \
++			break;                                                 \
++		}                                                              \
++		if ((display_lantest_log_msg != 0) && (i == FP_LOG)) {         \
++			fprintf(stdout, "[Log]:   ");                          \
++			fprintf(stdout, __VA_ARGS__);                          \
++		}                                                              \
++	} while (0);
++
++//---------------------------------------------------------
++// Function
++//---------------------------------------------------------
++  #define SWAP_4B( x )                                                             \
++                                                 ( ( ( ( x ) & 0xff000000 ) >> 24) \
++                                                 | ( ( ( x ) & 0x00ff0000 ) >>  8) \
++                                                 | ( ( ( x ) & 0x0000ff00 ) <<  8) \
++                                                 | ( ( ( x ) & 0x000000ff ) << 24) \
++                                                 )
++  #define SWAP_2B( x )                                                             \
++                                                 ( ( ( ( x ) & 0xff00     ) >>  8) \
++                                                 | ( ( ( x ) & 0x00ff     ) <<  8) \
++                                                 )
++
++  #define SWAP_2B_BEDN( x )                      ( SWAP_2B ( x ) )
++  #define SWAP_2B_LEDN( x )                      ( x )
++  #define SWAP_4B_BEDN( x )                      ( SWAP_4B ( x ) )
++  #define SWAP_4B_LEDN( x )                      ( x )
++
++  #define SWAP_4B_BEDN_NCSI( x )                 ( SWAP_4B( x ) )
++  #define SWAP_4B_LEDN_NCSI( x )                 ( x )
++
++#if defined(ENABLE_BIG_ENDIAN_MEM)
++  #define SWAP_4B_LEDN_MEM( x )                  ( SWAP_4B( x ) )
++#else
++  #define SWAP_4B_LEDN_MEM( x )                  ( x )
++#endif
++#if defined(ENABLE_BIG_ENDIAN_REG)
++  #define SWAP_4B_LEDN_REG( x )                  ( SWAP_4B( x ) )
++#else
++  #define SWAP_4B_LEDN_REG( x )                  ( x )
++#endif
++
++#define DELAY( x )                       	udelay( ( x ) * 1000 )
++#define GET_CAHR                         	getc
++
++//---------------------------------------------------------
++// Default argument
++//---------------------------------------------------------
++#define  DEF_GUSER_DEF_PACKET_VAL                0xaaaaaaaa     //0xff00ff00, 0xf0f0f0f0, 0xcccccccc, 0x55aa55aa, 0x5a5a5a5a, 0x66666666
++#define  DEF_GIOTIMINGBUND                       2
++#define  DEF_GPHY_ADR                            0
++#define  DEF_GTESTMODE                           0              //[0]0: no burst mode, 1: 0xff, 2: 0x55, 3: random, 4: ARP, 5: ARP, 6: IO timing, 7: IO timing+IO Strength
++#define  DEF_GLOOP_MAX                           1
++#define  DEF_GCTRL                               0
++
++#define  SET_1GBPS                               BIT(0)
++#define  SET_100MBPS                             BIT(1)
++#define  SET_10MBPS                              BIT(2)
++#define  SET_1G_100M_10MBPS                      (SET_1GBPS | SET_100MBPS | SET_10MBPS)
++#define  SET_100M_10MBPS                         (SET_100MBPS | SET_10MBPS)
++#define  SET_1G_100MBPS		(SET_1GBPS | SET_100MBPS)
++#define  SET_1G_10MBPS		(SET_1GBPS | SET_10MBPS)
++
++#define  DEF_GSPEED                              SET_1G_100M_10MBPS
++#define  DEF_GARPNUMCNT                          0
+ 
+ /* MAC information */
+ 
+@@ -115,787 +117,787 @@
+ 
+ #define MAC_048_def				0x000002F1 /* default 0xf1 */
+ 
+-//---------------------------------------------------------
+-// Data information
+-//---------------------------------------------------------
+-#define ZeroCopy_OFFSET                    (( eng->run.tm_tx_only ) ? 0 : 2)
+-
+-//      --------------------------------- DRAM_MapAdr            = tdes_base
+-//              | TX descriptor ring    |
+-//              ------------------------- DRAM_MapAdr + 0x040000 = rdes_base
+-//              | RX descriptor ring    |
+-//              -------------------------
+-//              | Reserved              |
+-//              -------------------------
+-//              | Reserved              |
+-//      --------------------------------- DRAM_MapAdr + 0x100000 = DMA_BASE    -------------------------
+-//              |   #1                  |  \                                   |     #1     Tx         |
+-//  DMA buffer  |                       |   DMA_BufSize                        |      LOOP = 0         |
+-// ( Tx/Rx )    -------------------------  /                                   --------------------------------------------------
+-//              |   #2                  |                                      |     #2     Rx         |  #2     Tx             |
+-//              |                       |                                      |      LOOP = 0         |   LOOP = 1             |
+-//              -------------------------                                      --------------------------------------------------
+-//              |   #3                  |                                                              |  #3     Rx             |
+-//              |                       |                                                              |   LOOP = 1             |
+-//              -------------------------                                                              -------------------------
+-//              |   #4                  |                                                                                     ..........
+-//              |                       |
+-//              -------------------------
+-//              |   #5                  |
+-//              |                       |
+-//              -------------------------
+-//              |   #6                  |
+-//              |                       |
+-//              -------------------------
+-//                           .
+-//                           .
+-//              -------------------------
+-//              |   #n, n = DMA_BufNum  |
+-//              |                       |
+-//      ---------------------------------
+-
+-#define BUF_SIZE			0x04000000
+-#define TDES_SIZE			0x00040000
+-#define RDES_SIZE			0x00040000
+-#define RESV_SIZE			0x00000000		/* reserved */
+-
+-#define TDES_IniVal (0xb0000000 + eng->dat.FRAME_LEN_Cur)
+-#define RDES_IniVal (0x00000fff)
+-#define EOR_IniVal (0x40000000)
+-#define HWOwnTx(dat) (dat & 0x80000000)
+-#define HWOwnRx(dat) ((dat & 0x80000000) == 0)
+-#define HWEOR(dat) (dat & 0x40000000)
+-
+-#define AT_MEMRW_BUF(x) ((x) - ASPEED_DRAM_BASE)
+-#define AT_BUF_MEMRW(x) ((x) + ASPEED_DRAM_BASE)
+-
+-//---------------------------------------------------------
+-// Error Flag Bits
+-//---------------------------------------------------------
+-#define Err_Flag_MACMode                              ( 1 <<  0 )   // MAC interface mode mismatch
+-#define Err_Flag_PHY_Type                             ( 1 <<  1 )   // Unidentifiable PHY
+-#define Err_Flag_MALLOC_FrmSize                       ( 1 <<  2 )   // Malloc fail at frame size buffer
+-#define Err_Flag_MALLOC_LastWP                        ( 1 <<  3 )   // Malloc fail at last WP buffer
+-#define Err_Flag_Check_Buf_Data                       ( 1 <<  4 )   // Received data mismatch
+-#define Err_Flag_Check_Des                            ( 1 <<  5 )   // Descriptor error
+-#define ERR_FLAG_NCSI_LINKFAIL			(1 << 6)	// NCSI packet retry number over flows
+-#define Err_Flag_NCSI_Check_TxOwnTimeOut              ( 1 <<  7 )   // Time out of checking Tx owner bit in NCSI packet
+-#define Err_Flag_NCSI_Check_RxOwnTimeOut              ( 1 <<  8 )   // Time out of checking Rx owner bit in NCSI packet
+-#define Err_Flag_NCSI_Check_ARPOwnTimeOut             ( 1 <<  9 )   // Time out of checking ARP owner bit in NCSI packet
+-#define Err_Flag_NCSI_No_PHY                          ( 1 << 10 )   // Can not find NCSI PHY
+-#define Err_Flag_NCSI_Channel_Num                     ( 1 << 11 )   // NCSI Channel Number Mismatch
+-#define Err_Flag_NCSI_Package_Num                     ( 1 << 12 )   // NCSI Package Number Mismatch
+-#define Err_Flag_PHY_TimeOut_RW                       ( 1 << 13 )   // Time out of read/write PHY register
+-#define Err_Flag_PHY_TimeOut_Rst                      ( 1 << 14 )   // Time out of reset PHY register
+-#define Err_Flag_RXBUF_UNAVA                          ( 1 << 15 )   // MAC00h[2]:Receiving buffer unavailable
+-#define Err_Flag_RPKT_LOST                            ( 1 << 16 )   // MAC00h[3]:Received packet lost due to RX FIFO full
+-#define Err_Flag_NPTXBUF_UNAVA                        ( 1 << 17 )   // MAC00h[6]:Normal priority transmit buffer unavailable
+-#define Err_Flag_TPKT_LOST                            ( 1 << 18 )   // MAC00h[7]:Packets transmitted to Ethernet lost
+-#define Err_Flag_DMABufNum                            ( 1 << 19 )   // DMA Buffer is not enough
+-#define Err_Flag_IOMargin                             ( 1 << 20 )   // IO timing margin is not enough
+-#define Err_Flag_IOMarginOUF                          ( 1 << 21 )   // IO timing testing out of boundary
+-#define Err_Flag_MHCLK_Ratio                          ( 1 << 22 )   // Error setting of MAC AHB bus clock (SCU08[18:16])
+-
+-#define Wrn_Flag_IOMarginOUF                          ( 1 <<  0 )   // IO timing testing out of boundary
+-#define Wrn_Flag_RxErFloatting                        ( 1 <<  1 )   // NCSI RXER pin may be floatting to the MAC
+-//#define Wrn_Flag_RMIICK_IOMode                        ( 1 <<  2 )   // The PHY's RMII refreence clock input/output mode
+-
+-#define PHY_Flag_RMIICK_IOMode_RTL8201E               ( 1 <<  0 )
+-#define PHY_Flag_RMIICK_IOMode_RTL8201F               ( 1 <<  1 )
+-
+-#define Des_Flag_TxOwnTimeOut                         ( 1 <<  0 )   // Time out of checking Tx owner bit
+-#define Des_Flag_RxOwnTimeOut                         ( 1 <<  1 )   // Time out of checking Rx owner bit
+-#define Des_Flag_FrameLen                             ( 1 <<  2 )   // Frame length mismatch
+-#define Des_Flag_RxErr                                ( 1 <<  3 )   // Input signal RxErr
+-#define Des_Flag_CRC                                  ( 1 <<  4 )   // CRC error of frame
+-#define Des_Flag_FTL                                  ( 1 <<  5 )   // Frame too long
+-#define Des_Flag_Runt                                 ( 1 <<  6 )   // Runt packet
+-#define Des_Flag_OddNibble                            ( 1 <<  7 )   // Nibble bit happen
+-#define Des_Flag_RxFIFOFull                           ( 1 <<  8 )   // Rx FIFO full
+-
+-#define NCSI_Flag_Get_Version_ID                      ( 1 <<  0 )   // Time out when Get Version ID
+-#define NCSI_Flag_Get_Capabilities                    ( 1 <<  1 )   // Time out when Get Capabilities
+-#define NCSI_Flag_Select_Active_Package               ( 1 <<  2 )   // Time out when Select Active Package
+-#define NCSI_Flag_Enable_Set_MAC_Address              ( 1 <<  3 )   // Time out when Enable Set MAC Address
+-#define NCSI_Flag_Enable_Broadcast_Filter             ( 1 <<  4 )   // Time out when Enable Broadcast Filter
+-#define NCSI_Flag_Enable_Network_TX                   ( 1 <<  5 )   // Time out when Enable Network TX
+-#define NCSI_Flag_Enable_Channel                      ( 1 <<  6 )   // Time out when Enable Channel
+-#define NCSI_Flag_Disable_Network_TX                  ( 1 <<  7 )   // Time out when Disable Network TX
+-#define NCSI_Flag_Disable_Channel                     ( 1 <<  8 )   // Time out when Disable Channel
+-#define NCSI_Flag_Select_Package                      ( 1 <<  9 )   // Time out when Select Package
+-#define NCSI_Flag_Deselect_Package                    ( 1 << 10 )   // Time out when Deselect Package
+-#define NCSI_Flag_Set_Link                            ( 1 << 11 )   // Time out when Set Link
+-#define NCSI_Flag_Get_Controller_Packet_Statistics    ( 1 << 12 )   // Time out when Get Controller Packet Statistics
+-#define NCSI_Flag_Reset_Channel                       ( 1 << 13 )   // Time out when Reset Channel
+-
+-//---------------------------------------------------------
+-// DMA Buffer information
+-//---------------------------------------------------------
+-#define DMA_BUF_SIZE				(56 * 1024 * 1024)
+-extern uint8_t dma_buf[DMA_BUF_SIZE];
+-
+-#define DMA_BASE				((uint32_t)(&dma_buf[0]))
+-/* The size of one LAN packet */
+-#define DMA_PakSize 				(2 * 1024)
+-
+-#ifdef SelectSimpleBoundary
+-#define DMA_BufSize (((((p_eng->dat.Des_Num + 15) * DMA_PakSize) >> 2) << 2))
+-#else
+-#define DMA_BufSize                                                            \
+-	(4 + ((((p_eng->dat.Des_Num + 15) * DMA_PakSize) >> 2) << 2))
+-#endif
+-#define DMA_BufNum (DMA_BUF_SIZE / (p_eng->dat.DMABuf_Size))
+-
+-/* get DMA buffer address according to the loop counter */
+-#define GET_DMA_BASE(p_eng, x)                                                 \
+-	(DMA_BASE + ((((x) % p_eng->dat.DMABuf_Num)) * p_eng->dat.DMABuf_Size))
+-
+-#define SEED_START                               8
+-#define DATA_SEED(seed)                          ( ( seed ) | (( seed + 1 ) << 16 ) )
+-#define DATA_IncVal                              0x00020001
+-#define PktByteSize                              ( ( ( ( ZeroCopy_OFFSET + eng->dat.FRAME_LEN_Cur - 1 ) >> 2 ) + 1) << 2 )
+-
+-//---------------------------------------------------------
+-// Delay (ms)
+-//---------------------------------------------------------
+-//#define Delay_DesGap                             1    //off
+-//#define Delay_CntMax                             40
+-//#define Delay_CntMax                             1000
+-//#define Delay_CntMax                             8465
+-//#define Delay_CntMaxIncVal                       50000
+-#define Delay_CntMaxIncVal                       47500
+-
+-
+-//#define Delay_ChkRxOwn                           1
+-//#define Delay_ChkTxOwn                           1
+-
+-#define Delay_PHYRst                             100
+-//#define Delay_PHYRd                              5
+-#define Delay_PHYRd                              1         //20150423
+-
+-#define Delay_MACRst                             1
+-#define Delay_MACDump                            1
+-
+-//#define Delay_DES                                1
+-
+-//---------------------------------------------------------
+-// Time Out
+-//---------------------------------------------------------
+-#define TIME_OUT_Des_1G                      10000     //400
+-#define TIME_OUT_Des_100M                    20000     //4000
+-#define TIME_OUT_Des_10M                     50000     //20000
+-#define TIME_OUT_NCSI                        100000    //40000
+-#define TIME_OUT_PHY_RW                      2000000   //100000
+-#define TIME_OUT_PHY_Rst                     20000     //1000
+-
+-//---------------------------------------------------------
+-// Chip memory MAP
+-//---------------------------------------------------------
+-typedef union {
+-	uint32_t w;
+-	struct {
+-		uint32_t txdma_en		: 1;	/* bit[0] */
+-		uint32_t rxdma_en		: 1;	/* bit[1] */
+-		uint32_t txmac_en		: 1;	/* bit[2] */
+-		uint32_t rxmac_en		: 1;	/* bit[3] */
+-		uint32_t rm_vlan		: 1;	/* bit[4] */
+-		uint32_t hptxr_en		: 1;	/* bit[5] */
+-		uint32_t phy_link_sts_dtct	: 1;	/* bit[6] */
+-		uint32_t enrx_in_halftx		: 1;	/* bit[7] */
+-		uint32_t fulldup		: 1;	/* bit[8] */
+-		uint32_t gmac_mode		: 1;	/* bit[9] */
+-		uint32_t crc_apd		: 1;	/* bit[10] */
+-#ifdef CONFIG_ASPEED_AST2600
+-		uint32_t reserved_1		: 1;	/* bit[11] */
+-#else		
+-		uint32_t phy_link_lvl_dtct	: 1;	/* bit[11] */
+-#endif		
+-		uint32_t rx_runt		: 1;	/* bit[12] */
+-		uint32_t jumbo_lf		: 1;	/* bit[13] */
+-		uint32_t rx_alladr		: 1;	/* bit[14] */
+-		uint32_t rx_ht_en		: 1;	/* bit[15] */
+-		uint32_t rx_multipkt_en		: 1;	/* bit[16] */
+-		uint32_t rx_broadpkt_en		: 1;	/* bit[17] */
+-		uint32_t discard_crcerr		: 1;	/* bit[18] */
+-		uint32_t speed_100		: 1;	/* bit[19] */
+-		uint32_t reserved_0		: 11;	/* bit[30:20] */
+-		uint32_t sw_rst			: 1;	/* bit[31] */
+-	}b;
+-} mac_cr_t;
+-// ========================================================
+-// For ncsi.c
+-
+-#define DEF_GPACKAGE2NUM                         1         // Default value
+-#define DEF_GCHANNEL2NUM                         1         // Default value
+-
+-//---------------------------------------------------------
+-// Variable
+-//---------------------------------------------------------
+-//NC-SI Command Packet
+-typedef struct {
+-//Ethernet Header
+-	unsigned char        DA[6];                        // Destination Address
+-	unsigned char        SA[6];                        // Source Address
+-	uint16_t       EtherType;                    // DMTF NC-SI, it should be 0x88F8
+-//NC-SI Control Packet
+-	unsigned char        MC_ID;                        // Management Controller should set this field to 0x00
+-	unsigned char        Header_Revision;              // For NC-SI 1.0 spec, this field has to set 0x01
+-	unsigned char        Reserved_1;                   // Reserved has to set to 0x00
+-	unsigned char        IID;                          // Instance ID
+-	unsigned char        Command;
+-//	unsigned char        Channel_ID;
+-	unsigned char        ChID;
+-	uint16_t	Payload_Length;               // Payload Length = 12 bits, 4 bits are reserved
+-	uint32_t	Reserved_2;
+-	uint32_t	Reserved_3;
+-
+-	uint16_t	Reserved_4;
+-	uint16_t	Reserved_5;
+-	uint16_t	Response_Code;
+-	uint16_t       Reason_Code;
+-	unsigned char        Payload_Data[64];
+-#if !defined(SLT_UBOOT)
+-}  NCSI_Command_Packet;
+-#else
+-}  __attribute__ ((__packed__)) NCSI_Command_Packet;
+-#endif
+-
+-//NC-SI Response Packet
+-typedef struct {
+-	unsigned char        DA[6];
+-	unsigned char        SA[6];
+-	uint16_t       EtherType;                    //DMTF NC-SI
+-//NC-SI Control Packet
+-	unsigned char        MC_ID;                        //Management Controller should set this field to 0x00
+-	unsigned char        Header_Revision;              //For NC-SI 1.0 spec, this field has to set 0x01
+-	unsigned char        Reserved_1;                   //Reserved has to set to 0x00
+-	unsigned char        IID;                          //Instance ID
+-	unsigned char        Command;
+-//	unsigned char        Channel_ID;
+-	unsigned char        ChID;
+-	uint16_t       Payload_Length;               //Payload Length = 12 bits, 4 bits are reserved
+-	uint16_t       Reserved_2;
+-	uint16_t       Reserved_3;
+-	uint16_t       Reserved_4;
+-	uint16_t       Reserved_5;
+-
+-	uint16_t       Response_Code;
+-	uint16_t       Reason_Code;
+-	unsigned char        Payload_Data[64];
+-#if !defined(SLT_UBOOT)
+-}  NCSI_Response_Packet;
+-#else
+-}  __attribute__ ((__packed__)) NCSI_Response_Packet;
+-#endif
+-
+-typedef struct {
+-	unsigned char        All_ID                                   ;
+-	unsigned char        Package_ID                               ;
+-	unsigned char        Channel_ID                               ;
+-	uint32_t Capabilities_Flags                       ;
+-	uint32_t Broadcast_Packet_Filter_Capabilities     ;
+-	uint32_t Multicast_Packet_Filter_Capabilities     ;
+-	uint32_t Buffering_Capabilities                   ;
+-	uint32_t AEN_Control_Support                      ;
+-	unsigned char        VLAN_Filter_Count                        ;
+-	unsigned char        Mixed_Filter_Count                       ;
+-	unsigned char        Multicast_Filter_Count                   ;
+-	unsigned char        Unicast_Filter_Count                     ;
+-	unsigned char        VLAN_Mode_Support                        ;
+-	unsigned char        Channel_Count                            ;
+-	uint32_t PCI_DID_VID                              ;
+-	uint32_t manufacturer_id                           ;
+-} NCSI_Capability;
+-
+-typedef struct {
+-	mac_cr_t maccr;
+-	uint32_t mac_madr;
+-	uint32_t mac_ladr;
+-	uint32_t mac_fear;
+-
+-	uint32_t WDT_00c                       ;
+-	uint32_t WDT_02c                       ;
+-	uint32_t WDT_04c                       ;
+-
+-	int8_t                 SCU_oldvld;
+-} mac_reg_t;
+-typedef struct {
+-	uint8_t ast2600;
+-	uint8_t ast2500;
+-	uint8_t mac_num;
+-	uint8_t is_new_mdio_reg[4];
+-
+-	uint8_t is_1g_valid[4];
+-	uint8_t at_least_1g_valid;
+-	uint8_t MHCLK_Ratio;
+-} mac_env_t;
+-
+-typedef union {
+-	uint32_t w;
+-	struct {
+-		uint32_t skip_phy_init	: 1;	/* bit[0] */
+-		uint32_t skip_phy_deinit: 1;	/* bit[1] */
+-		uint32_t skip_phy_id_check	: 1;	/* bit[2] */
+-		uint32_t reserved_0	: 1;	/* bit[3] */
+-		uint32_t phy_int_loopback : 1;	/* bit[4] */
+-		uint32_t mac_int_loopback : 1;	/* bit[5] */
+-		uint32_t phy_rx_delay_en: 1;	/* bit[6] */
+-		uint32_t phy_tx_delay_en: 1;	/* bit[7] */
+-		uint32_t rmii_50m_out	: 1;	/* bit[8] */
+-		uint32_t rmii_phy_in	: 1;	/* bit[9] */
+-		uint32_t inv_rgmii_rxclk: 1;	/* bit[10] */
+-		uint32_t reserved_2	: 1;	/* bit[11] */
+-		uint32_t single_packet	: 1;	/* bit[12] */
+-		uint32_t full_range	: 1;	/* bit[13] */
+-		uint32_t reserved_3	: 2;	/* bit[15:14] */
+-		uint32_t print_ncsi	: 1;	/* bit[16] */
+-		uint32_t skip_rx_err	: 1;	/* bit[17] */
+-	} b;
+-} mac_arg_ctrl_t;
+-typedef struct {
+-	uint32_t run_mode;		/* select dedicated or NCSI */
+-	uint32_t mac_idx;		/* argv[1] */
+-	uint32_t mdio_idx;
+-	uint32_t run_speed;		/* argv[2] for dedicated */
+-	mac_arg_ctrl_t ctrl;		/* argv[3] for dedicated 
+-					   argv[6] for ncsi */
+-	uint32_t loop_max;		/* argv[4] for dedicated */
+-	uint32_t loop_inf;		/* argv[4] for dedicated */
+-
+-	uint32_t GPackageTolNum;	/* argv[2] for ncsi */
+-	uint32_t GChannelTolNum;	/* argv[3] for ncsi */
+-	
+-	uint32_t test_mode;		/* argv[5] for dedicated
+-					   argv[4] for ncsi */
+-
+-	uint32_t phy_addr;		/* argv[6] for dedicated */
+-	uint32_t delay_scan_range;	/* argv[7] for dedicated
+-					   argv[5] for ncsi */	
+-	uint32_t ieee_sel;		/* argv[7] for dedicated */
+-
+-	uint32_t GARPNumCnt;		/* argv[7] for ncsi */
+-	uint32_t user_def_val;		/* argv[8] for dedicated */
+-} mac_arg_t;
+-typedef struct {
+-	uint32_t mac_idx;
+-	uint32_t mac_base;
+-	uint32_t mdio_idx;
+-	uint32_t mdio_base;
+-	uint32_t is_rgmii;
+-	uint32_t ieee_sel;		/* derived from delay_scan_range */
+-
+-	uint32_t tdes_base;
+-	uint32_t rdes_base;
+-
+-	uint32_t ncsi_tdes_base;
+-	uint32_t ncsi_rdes_base;
+-
+-	uint32_t LOOP_CheckNum                 ;
+-	uint32_t CheckBuf_MBSize               ;
+-	uint32_t timeout_th;	/* time out threshold (varies with run-speed) */
+-
+-	uint32_t loop_max;
+-	uint32_t loop_of_cnt;
+-	uint32_t loop_cnt;
+-	uint32_t speed_idx;
+-	int                  NCSI_RxTimeOutScale           ;
+-
+-	uint8_t speed_cfg[3];
+-	uint8_t speed_sel[3];
+-
+-	/* test mode */
+-	uint8_t delay_margin;
+-	uint8_t tm_tx_only;
+-	int8_t                 TM_IEEE                       ;//test_mode
+-	int8_t                 TM_IOTiming                   ;//test_mode
+-	int8_t                 TM_IOStrength                 ;//test_mode
+-	int8_t                 TM_TxDataEn                   ;//test_mode
+-	int8_t                 TM_RxDataEn                   ;//test_mode
+-	int8_t                 TM_WaitStart                  ;//test_mode
+-	int8_t                 TM_DefaultPHY                 ;//test_mode
+-	int8_t                 TM_NCSI_DiSChannel            ;//test_mode
+-
+-	int8_t                 IO_MrgChk                     ;
+-
+-
+-} MAC_Running;
+-
+-typedef struct {
+-	uint8_t SA[6];
+-} MAC_Information;
+-
+-typedef struct {
+-	uint32_t mdio_base;
+-	uint32_t loopback;
+-	uint8_t phy_name[64];
+-	int8_t                 default_phy                   ;
+-	int8_t                 Adr                           ;
+-
+-	uint16_t id2                       ;
+-	uint16_t id1                       ;
+-
+-	uint32_t PHY_00h                       ;
+-	uint32_t PHY_06h                       ;
+-	uint32_t PHY_09h                       ;
+-	uint32_t PHY_0eh                       ;
+-	uint32_t PHY_10h                       ;
+-	uint32_t PHY_11h                       ;
+-	uint32_t PHY_12h                       ;
+-	uint32_t PHY_14h                       ;
+-	uint32_t PHY_15h                       ;
+-	uint32_t PHY_18h                       ;
+-	uint32_t PHY_19h                       ;
+-	uint32_t PHY_1ch                       ;
+-	uint32_t PHY_1eh                       ;
+-	uint32_t PHY_1fh                       ;
+-	uint32_t PHY_06hA[7]                   ;
+-
+-	uint32_t RMIICK_IOMode                 ;
+-} MAC_PHY;
+-
+-#ifdef CONFIG_ASPEED_AST2600
+-typedef union {
+-	uint32_t w;
+-	struct {
+-		uint32_t tx_delay_1		: 6;	/* bit[5:0] */
+-		uint32_t tx_delay_2		: 6;	/* bit[11:6] */
+-		uint32_t rx_delay_1		: 6;	/* bit[17:12] */
+-		uint32_t rx_delay_2		: 6;	/* bit[23:18] */
+-		uint32_t rx_clk_inv_1 		: 1;	/* bit[24] */
+-		uint32_t rx_clk_inv_2 		: 1;	/* bit[25] */
+-		uint32_t rmii_tx_data_at_falling_1 : 1; /* bit[26] */
+-		uint32_t rmii_tx_data_at_falling_2 : 1; /* bit[27] */
+-		uint32_t rgmiick_pad_dir	: 1;	/* bit[28] */
+-		uint32_t rmii_50m_oe_1 		: 1;	/* bit[29] */
+-		uint32_t rmii_50m_oe_2		: 1;	/* bit[30] */
+-		uint32_t rgmii_125m_o_sel 	: 1;	/* bit[31] */
+-	}b;
+-} mac_delay_1g_t;
+-
+-typedef union {
+-	uint32_t w;
+-	struct {
+-		uint32_t tx_delay_1		: 6;	/* bit[5:0] */
+-		uint32_t tx_delay_2		: 6;	/* bit[11:6] */
+-		uint32_t rx_delay_1		: 6;	/* bit[17:12] */
+-		uint32_t rx_delay_2		: 6;	/* bit[23:18] */
+-		uint32_t rx_clk_inv_1 		: 1;	/* bit[24] */
+-		uint32_t rx_clk_inv_2 		: 1;	/* bit[25] */
+-		uint32_t reserved_0 		: 6;	/* bit[31:26] */
+-	}b;
+-} mac_delay_100_10_t;
+-#else
+-typedef union {
+-	uint32_t w;
+-	struct {
+-		uint32_t tx_delay_1		: 6;	/* bit[5:0] */
+-		uint32_t tx_delay_2		: 6;	/* bit[11:6] */
+-		uint32_t rx_delay_1		: 6;	/* bit[17:12] */
+-		uint32_t rx_delay_2		: 6;	/* bit[23:18] */		
+-		uint32_t rmii_tx_data_at_falling_1 : 1; /* bit[24] */
+-		uint32_t rmii_tx_data_at_falling_2 : 1; /* bit[25] */
+-		uint32_t reserved		: 3;	/* bit[28:26] */
+-		uint32_t rmii_50m_oe_1 		: 1;	/* bit[29] */
+-		uint32_t rmii_50m_oe_2		: 1;	/* bit[30] */
+-		uint32_t rgmii_125m_o_sel 	: 1;	/* bit[31] */
+-	}b;
+-} mac_delay_1g_t;
+-
+-typedef union {
+-	uint32_t w;
+-	struct {
+-		uint32_t tx_delay_1		: 6;	/* bit[5:0] */
+-		uint32_t tx_delay_2		: 6;	/* bit[11:6] */
+-		uint32_t rx_delay_1		: 6;	/* bit[17:12] */
+-		uint32_t rx_delay_2		: 6;	/* bit[23:18] */
+-		uint32_t enable 		: 1;	/* bit[24] */
+-		uint32_t reserved_0 		: 7;	/* bit[31:25] */
+-	}b;
+-} mac_delay_100_10_t;
+-#endif
+-
+-typedef struct mac_delay_1g_reg_s {
+-	uint32_t addr;
+-	int32_t tx_min;
+-	int32_t tx_max;
+-	int32_t rx_min;
+-	int32_t rx_max;
+-	int32_t rmii_tx_min;
+-	int32_t rmii_tx_max;
+-	int32_t rmii_rx_min;
+-	int32_t rmii_rx_max;
+-	mac_delay_1g_t value;	/* backup register value */
+-} mac_delay_1g_reg_t;
+-
+-typedef struct mac_delay_100_10_reg_s {
+-	uint32_t addr;
+-	int32_t tx_min;
+-	int32_t tx_max;
+-	int32_t rx_min;
+-	int32_t rx_max;
+-	mac_delay_100_10_t value;
+-} mac_delay_100_10_reg_t;
+-
+-#ifdef CONFIG_ASPEED_AST2600
+-typedef union {
+-	uint32_t w;
+-	struct {
+-		uint32_t mac3_tx_drv		: 2;	/* bit[1:0] */
+-		uint32_t mac4_tx_drv		: 2;	/* bit[3:2] */
+-		uint32_t reserved_0		: 28;	/* bit[31:4] */
+-	}b;
+-} mac34_drv_t;
+-typedef struct mac34_drv_reg_s {
+-	uint32_t addr;
+-	uint32_t drv_max;
+-	mac34_drv_t value;
+-} mac34_drv_reg_t;
+-
+-#else
+-typedef union {
+-	uint32_t w;
+-	struct {
+-		uint32_t reserved_0		: 8;	/* bit[7:0] */
+-		uint32_t mac1_rmii_tx_drv	: 1;	/* bit[8] */
+-		uint32_t mac1_rgmii_tx_drv	: 1;	/* bit[9] */
+-		uint32_t mac2_rmii_tx_drv	: 1;	/* bit[10] */
+-		uint32_t mac2_rgmii_tx_drv	: 1;	/* bit[11] */
+-		uint32_t reserved_1		: 20;	/* bit[31:12] */
+-	}b;
+-} mac12_drv_t;
+-
+-typedef struct mac12_drv_reg_s {
+-	uint32_t addr;
+-	uint32_t drv_max;
+-	mac12_drv_t value;
+-} mac12_drv_reg_t;
+-#endif
+-
+-typedef struct delay_scan_s {
+-	int8_t begin;
+-	int8_t end;
+-	int8_t step;
+-	int8_t orig;
+-} delay_scan_t;
+-typedef struct {
+-	/* driving strength */
+-#ifdef CONFIG_ASPEED_AST2600
+-	mac34_drv_reg_t mac34_drv_reg;
+-#else	
+-	mac12_drv_reg_t mac12_drv_reg;
+-#endif
+-	uint32_t drv_upper_bond;
+-	uint32_t drv_lower_bond;
+-	uint32_t drv_curr;
+-
+-	mac_delay_1g_reg_t mac12_1g_delay;
+-	mac_delay_1g_reg_t mac34_1g_delay;
+-	mac_delay_100_10_reg_t mac12_100m_delay;
+-	mac_delay_100_10_reg_t mac34_100m_delay;
+-	mac_delay_100_10_reg_t mac12_10m_delay;
+-	mac_delay_100_10_reg_t mac34_10m_delay;
+-
+-	delay_scan_t tx_delay_scan;
+-	delay_scan_t rx_delay_scan;	
+-
+-	uint8_t                 Dly_in_reg_idx;
+-	int8_t                Dly_in_min                    ;
+-	uint8_t                 Dly_in_max                    ;
+-	uint8_t                 Dly_out_reg_idx               ;
+-	int8_t                Dly_out_min                   ;
+-	uint8_t                 Dly_out_max                   ;	
+-	
+-	uint8_t                 Dly_in                        ;
+-	uint8_t                 Dly_in_selval                 ;
+-	uint8_t                 Dly_out                       ;
+-	uint8_t                 Dly_out_selval                ;
+-	int8_t result;
+-	int8_t result_history[128][64];
+-	uint32_t init_done;
+-} MAC_IO;
+-typedef struct {
+-#ifdef Enable_ShowBW
+-	double               Total_frame_len               ;//__attribute__ ((aligned (8)));
+-#endif
+-	uint32_t Des_Num                       ;
+-	uint32_t Des_Num_Org                   ;
+-	uint32_t DMABuf_Size                   ;
+-	uint32_t DMABuf_Num                    ;
+-
+-	uint32_t *FRAME_LEN                    ;
+-	uint32_t FRAME_LEN_Cur                 ;
+-	uint32_t *wp_lst                       ;
+-	uint32_t wp_fir                        ;
+-
+-	uint32_t DMA_Base_Setup                 ;
+-	uint32_t DMA_Base_Tx                  ;
+-	uint32_t DMA_Base_Rx                   ;
+-
+-	uint32_t ARP_data[16]                  ;
+-	uint32_t TxDes0DW                      ;
+-	uint32_t RxDes0DW                      ;
+-	uint32_t RxDes3DW                      ;
+-
+-	uint8_t                 number_chl                    ;
+-	uint8_t                 number_pak                    ;
+-	char                 NCSI_RxEr                     ;
+-	uint32_t NCSI_TxDWBUF[512]             ;
+-	uint32_t NCSI_RxDWBUF[512]             ;
+-	char                 NCSI_CommandStr[512]          ;
+-	unsigned char        *NCSI_TxByteBUF               ;
+-	unsigned char        *NCSI_RxByteBUF               ;
+-	unsigned char        NCSI_Payload_Data[16]         ;
+-	uint32_t Payload_Checksum_NCSI         ;
+-} MAC_Data;
+-
+-typedef struct {
+-	uint32_t warn;
+-	uint32_t error;
+-	uint32_t desc;
+-	uint32_t ncsi;
+-	uint32_t error_backup;
+-	uint32_t ncsi_backup;
+-	uint32_t n_desc_fail;
+-	uint8_t print_en;
+-	uint8_t all_fail;
+-} MAC_Flag;
+-
+-typedef struct {
+-	mac_reg_t reg;
+-	mac_env_t env;
+-	mac_arg_t arg;	
+-	MAC_Running          run;
+-	MAC_Information      inf;
+-	MAC_PHY              phy;
+-	MAC_IO               io;
+-	MAC_Data             dat;
+-	MAC_Flag             flg;
+-	NCSI_Command_Packet  ncsi_req;
+-	NCSI_Response_Packet ncsi_rsp;
+-	NCSI_Capability      ncsi_cap;	
+-} MAC_ENGINE;
+-typedef void (* PHY_SETTING) (MAC_ENGINE *);
+-typedef struct {
+-	PHY_SETTING          fp_set;
+-	PHY_SETTING          fp_clr;
+-} PHY_ENGINE;
+-
+-#undef GLOBAL
+-#ifdef NCSI_C
+-#define GLOBAL
+-#else
+-#define GLOBAL    extern
+-#endif
+-
+-GLOBAL  char phy_ncsi (MAC_ENGINE *eng);
+-
+-// ========================================================
+-// For mactest
+-
+-#undef GLOBAL
+-#ifdef MACTEST_C
+-#define GLOBAL
+-#else
+-#define GLOBAL    extern
+-#endif
+-
+-#define MODE_DEDICATED                           0x01
+-#define MODE_NCSI                                0x02
+-
+-GLOBAL  uint8_t            *mmiobase;
+-GLOBAL  uint32_t ulPCIBaseAddress;
+-GLOBAL  uint32_t ulMMIOBaseAddress;
+-
+-GLOBAL  uint8_t             display_lantest_log_msg;
+-
+-// ========================================================
+-// For mac.c
+-#undef GLOBAL
+-#ifdef MAC_C
+-#define GLOBAL
+-#else
+-#define GLOBAL    extern
+-#endif
+-
+-#if defined(MAC_C)
+-static  const  char version_name[] = VER_NAME;
+-static  const  uint8_t IOValue_Array_A0[16] = {8,1, 10,3, 12,5, 14,7, 0,9, 2,11, 4,13, 6,15}; // AST2300-A0
+-#endif
+-
+-GLOBAL void    debug_pause (void);
+-GLOBAL uint32_t Read_Mem_Dat_NCSI_DD (uint32_t addr);
+-GLOBAL uint32_t Read_Mem_Des_NCSI_DD (uint32_t addr);
+-
+-
+-
+-
+-
+-
+-
+-GLOBAL void Write_Mem_Dat_NCSI_DD (uint32_t addr, uint32_t data);
+-GLOBAL void Write_Mem_Des_NCSI_DD (uint32_t addr, uint32_t data);
+-
+-
+-GLOBAL void Write_Reg_TIMER_DD (uint32_t addr, uint32_t data);
+-
+-
+-
+-
+-
+-
+-GLOBAL void    PrintTest (MAC_ENGINE *eng);
+-GLOBAL void    PrintIOTimingBund (MAC_ENGINE *eng);
+-
+-
+-
+-GLOBAL void    PrintPHYAdr (MAC_ENGINE *eng);
+-
+-
+-
+-
+-
+-GLOBAL void    setup_arp (MAC_ENGINE *eng);
+-GLOBAL void    TestingSetup (MAC_ENGINE *eng);
+-
+-
+-
+-GLOBAL void    init_mac (MAC_ENGINE *eng);
+-GLOBAL char TestingLoop (MAC_ENGINE *eng, uint32_t loop_checknum);
+-
+-GLOBAL void    init_phy (MAC_ENGINE *eng, PHY_ENGINE *phyeng);
+-
+-
+-GLOBAL void    phy_select (MAC_ENGINE *eng, PHY_ENGINE *phyeng);
+-GLOBAL void    recov_phy (MAC_ENGINE *eng, PHY_ENGINE *phyeng);
+-GLOBAL int     FindErr (MAC_ENGINE *eng, int value);
+-GLOBAL int     FindErr_Des (MAC_ENGINE *eng, int value);
+-GLOBAL void    PrintIO_Header (MAC_ENGINE *eng, uint8_t option);
+-
+-
+-
+-GLOBAL void    FPri_ErrFlag (MAC_ENGINE *eng, uint8_t option);
+-
+-GLOBAL void init_hwtimer( void );
+-GLOBAL void delay_hwtimer(uint16_t msec);
+-
+-// ========================================================
+-// For PHYGPIO.c
+-#undef GLOBAL
+-#ifdef PHYGPIO_C
+-#define GLOBAL
+-#else
+-#define GLOBAL    extern
+-#endif
+-
+-
+-// ========================================================
+-// For PHYSPECIAL.c
+-#undef GLOBAL
+-#ifdef PHYMISC_C
+-#define GLOBAL
+-#else
+-#define GLOBAL    extern
+-#endif
+-
+-
+-#endif // End COMMINF_H
++//---------------------------------------------------------
++// Data information
++//---------------------------------------------------------
++#define ZeroCopy_OFFSET                    (( eng->run.tm_tx_only ) ? 0 : 2)
++
++//      --------------------------------- DRAM_MapAdr            = tdes_base
++//              | TX descriptor ring    |
++//              ------------------------- DRAM_MapAdr + 0x040000 = rdes_base
++//              | RX descriptor ring    |
++//              -------------------------
++//              | Reserved              |
++//              -------------------------
++//              | Reserved              |
++//      --------------------------------- DRAM_MapAdr + 0x100000 = DMA_BASE    -------------------------
++//              |   #1                  |  \                                   |     #1     Tx         |
++//  DMA buffer  |                       |   DMA_BufSize                        |      LOOP = 0         |
++// ( Tx/Rx )    -------------------------  /                                   --------------------------------------------------
++//              |   #2                  |                                      |     #2     Rx         |  #2     Tx             |
++//              |                       |                                      |      LOOP = 0         |   LOOP = 1             |
++//              -------------------------                                      --------------------------------------------------
++//              |   #3                  |                                                              |  #3     Rx             |
++//              |                       |                                                              |   LOOP = 1             |
++//              -------------------------                                                              -------------------------
++//              |   #4                  |                                                                                     ..........
++//              |                       |
++//              -------------------------
++//              |   #5                  |
++//              |                       |
++//              -------------------------
++//              |   #6                  |
++//              |                       |
++//              -------------------------
++//                           .
++//                           .
++//              -------------------------
++//              |   #n, n = DMA_BufNum  |
++//              |                       |
++//      ---------------------------------
++
++#define BUF_SIZE			0x04000000
++#define TDES_SIZE			0x00040000
++#define RDES_SIZE			0x00040000
++#define RESV_SIZE			0x00000000		/* reserved */
++
++#define TDES_IniVal (0xb0000000 + eng->dat.FRAME_LEN_Cur)
++#define RDES_IniVal (0x00000fff)
++#define EOR_IniVal (0x40000000)
++#define HWOwnTx(dat) (dat & 0x80000000)
++#define HWOwnRx(dat) ((dat & 0x80000000) == 0)
++#define HWEOR(dat) (dat & 0x40000000)
++
++#define AT_MEMRW_BUF(x) ((x) - ASPEED_DRAM_BASE)
++#define AT_BUF_MEMRW(x) ((x) + ASPEED_DRAM_BASE)
++
++//---------------------------------------------------------
++// Error Flag Bits
++//---------------------------------------------------------
++#define Err_Flag_MACMode                              ( 1 <<  0 )   // MAC interface mode mismatch
++#define Err_Flag_PHY_Type                             ( 1 <<  1 )   // Unidentifiable PHY
++#define Err_Flag_MALLOC_FrmSize                       ( 1 <<  2 )   // Malloc fail at frame size buffer
++#define Err_Flag_MALLOC_LastWP                        ( 1 <<  3 )   // Malloc fail at last WP buffer
++#define Err_Flag_Check_Buf_Data                       ( 1 <<  4 )   // Received data mismatch
++#define Err_Flag_Check_Des                            ( 1 <<  5 )   // Descriptor error
++#define ERR_FLAG_NCSI_LINKFAIL			(1 << 6)	// NCSI packet retry number over flows
++#define Err_Flag_NCSI_Check_TxOwnTimeOut              ( 1 <<  7 )   // Time out of checking Tx owner bit in NCSI packet
++#define Err_Flag_NCSI_Check_RxOwnTimeOut              ( 1 <<  8 )   // Time out of checking Rx owner bit in NCSI packet
++#define Err_Flag_NCSI_Check_ARPOwnTimeOut             ( 1 <<  9 )   // Time out of checking ARP owner bit in NCSI packet
++#define Err_Flag_NCSI_No_PHY                          ( 1 << 10 )   // Can not find NCSI PHY
++#define Err_Flag_NCSI_Channel_Num                     ( 1 << 11 )   // NCSI Channel Number Mismatch
++#define Err_Flag_NCSI_Package_Num                     ( 1 << 12 )   // NCSI Package Number Mismatch
++#define Err_Flag_PHY_TimeOut_RW                       ( 1 << 13 )   // Time out of read/write PHY register
++#define Err_Flag_PHY_TimeOut_Rst                      ( 1 << 14 )   // Time out of reset PHY register
++#define Err_Flag_RXBUF_UNAVA                          ( 1 << 15 )   // MAC00h[2]:Receiving buffer unavailable
++#define Err_Flag_RPKT_LOST                            ( 1 << 16 )   // MAC00h[3]:Received packet lost due to RX FIFO full
++#define Err_Flag_NPTXBUF_UNAVA                        ( 1 << 17 )   // MAC00h[6]:Normal priority transmit buffer unavailable
++#define Err_Flag_TPKT_LOST                            ( 1 << 18 )   // MAC00h[7]:Packets transmitted to Ethernet lost
++#define Err_Flag_DMABufNum                            ( 1 << 19 )   // DMA Buffer is not enough
++#define Err_Flag_IOMargin                             ( 1 << 20 )   // IO timing margin is not enough
++#define Err_Flag_IOMarginOUF                          ( 1 << 21 )   // IO timing testing out of boundary
++#define Err_Flag_MHCLK_Ratio                          ( 1 << 22 )   // Error setting of MAC AHB bus clock (SCU08[18:16])
++
++#define Wrn_Flag_IOMarginOUF                          ( 1 <<  0 )   // IO timing testing out of boundary
++#define Wrn_Flag_RxErFloatting                        ( 1 <<  1 )   // NCSI RXER pin may be floatting to the MAC
++//#define Wrn_Flag_RMIICK_IOMode                        ( 1 <<  2 )   // The PHY's RMII refreence clock input/output mode
++
++#define PHY_Flag_RMIICK_IOMode_RTL8201E               ( 1 <<  0 )
++#define PHY_Flag_RMIICK_IOMode_RTL8201F               ( 1 <<  1 )
++
++#define Des_Flag_TxOwnTimeOut                         ( 1 <<  0 )   // Time out of checking Tx owner bit
++#define Des_Flag_RxOwnTimeOut                         ( 1 <<  1 )   // Time out of checking Rx owner bit
++#define Des_Flag_FrameLen                             ( 1 <<  2 )   // Frame length mismatch
++#define Des_Flag_RxErr                                ( 1 <<  3 )   // Input signal RxErr
++#define Des_Flag_CRC                                  ( 1 <<  4 )   // CRC error of frame
++#define Des_Flag_FTL                                  ( 1 <<  5 )   // Frame too long
++#define Des_Flag_Runt                                 ( 1 <<  6 )   // Runt packet
++#define Des_Flag_OddNibble                            ( 1 <<  7 )   // Nibble bit happen
++#define Des_Flag_RxFIFOFull                           ( 1 <<  8 )   // Rx FIFO full
++
++#define NCSI_Flag_Get_Version_ID                      ( 1 <<  0 )   // Time out when Get Version ID
++#define NCSI_Flag_Get_Capabilities                    ( 1 <<  1 )   // Time out when Get Capabilities
++#define NCSI_Flag_Select_Active_Package               ( 1 <<  2 )   // Time out when Select Active Package
++#define NCSI_Flag_Enable_Set_MAC_Address              ( 1 <<  3 )   // Time out when Enable Set MAC Address
++#define NCSI_Flag_Enable_Broadcast_Filter             ( 1 <<  4 )   // Time out when Enable Broadcast Filter
++#define NCSI_Flag_Enable_Network_TX                   ( 1 <<  5 )   // Time out when Enable Network TX
++#define NCSI_Flag_Enable_Channel                      ( 1 <<  6 )   // Time out when Enable Channel
++#define NCSI_Flag_Disable_Network_TX                  ( 1 <<  7 )   // Time out when Disable Network TX
++#define NCSI_Flag_Disable_Channel                     ( 1 <<  8 )   // Time out when Disable Channel
++#define NCSI_Flag_Select_Package                      ( 1 <<  9 )   // Time out when Select Package
++#define NCSI_Flag_Deselect_Package                    ( 1 << 10 )   // Time out when Deselect Package
++#define NCSI_Flag_Set_Link                            ( 1 << 11 )   // Time out when Set Link
++#define NCSI_Flag_Get_Controller_Packet_Statistics    ( 1 << 12 )   // Time out when Get Controller Packet Statistics
++#define NCSI_Flag_Reset_Channel                       ( 1 << 13 )   // Time out when Reset Channel
++
++//---------------------------------------------------------
++// DMA Buffer information
++//---------------------------------------------------------
++#define DMA_BUF_SIZE				(56 * 1024 * 1024)
++extern uint8_t dma_buf[DMA_BUF_SIZE];
++
++#define DMA_BASE				((uint32_t)(&dma_buf[0]))
++/* The size of one LAN packet */
++#define DMA_PakSize 				(2 * 1024)
++
++#ifdef SelectSimpleBoundary
++#define DMA_BufSize (((((p_eng->dat.Des_Num + 15) * DMA_PakSize) >> 2) << 2))
++#else
++#define DMA_BufSize                                                            \
++	(4 + ((((p_eng->dat.Des_Num + 15) * DMA_PakSize) >> 2) << 2))
++#endif
++#define DMA_BufNum (DMA_BUF_SIZE / (p_eng->dat.DMABuf_Size))
++
++/* get DMA buffer address according to the loop counter */
++#define GET_DMA_BASE(p_eng, x)                                                 \
++	(DMA_BASE + ((((x) % p_eng->dat.DMABuf_Num)) * p_eng->dat.DMABuf_Size))
++
++#define SEED_START                               8
++#define DATA_SEED(seed)                          ( ( seed ) | (( seed + 1 ) << 16 ) )
++#define DATA_IncVal                              0x00020001
++#define PktByteSize                              ( ( ( ( ZeroCopy_OFFSET + eng->dat.FRAME_LEN_Cur - 1 ) >> 2 ) + 1) << 2 )
++
++//---------------------------------------------------------
++// Delay (ms)
++//---------------------------------------------------------
++//#define Delay_DesGap                             1    //off
++//#define Delay_CntMax                             40
++//#define Delay_CntMax                             1000
++//#define Delay_CntMax                             8465
++//#define Delay_CntMaxIncVal                       50000
++#define Delay_CntMaxIncVal                       47500
++
++
++//#define Delay_ChkRxOwn                           1
++//#define Delay_ChkTxOwn                           1
++
++#define Delay_PHYRst                             100
++//#define Delay_PHYRd                              5
++#define Delay_PHYRd                              1         //20150423
++
++#define Delay_MACRst                             1
++#define Delay_MACDump                            1
++
++//#define Delay_DES                                1
++
++//---------------------------------------------------------
++// Time Out
++//---------------------------------------------------------
++#define TIME_OUT_Des_1G                      10000     //400
++#define TIME_OUT_Des_100M                    20000     //4000
++#define TIME_OUT_Des_10M                     50000     //20000
++#define TIME_OUT_NCSI                        100000    //40000
++#define TIME_OUT_PHY_RW                      2000000   //100000
++#define TIME_OUT_PHY_Rst                     20000     //1000
++
++//---------------------------------------------------------
++// Chip memory MAP
++//---------------------------------------------------------
++typedef union {
++	uint32_t w;
++	struct {
++		uint32_t txdma_en		: 1;	/* bit[0] */
++		uint32_t rxdma_en		: 1;	/* bit[1] */
++		uint32_t txmac_en		: 1;	/* bit[2] */
++		uint32_t rxmac_en		: 1;	/* bit[3] */
++		uint32_t rm_vlan		: 1;	/* bit[4] */
++		uint32_t hptxr_en		: 1;	/* bit[5] */
++		uint32_t phy_link_sts_dtct	: 1;	/* bit[6] */
++		uint32_t enrx_in_halftx		: 1;	/* bit[7] */
++		uint32_t fulldup		: 1;	/* bit[8] */
++		uint32_t gmac_mode		: 1;	/* bit[9] */
++		uint32_t crc_apd		: 1;	/* bit[10] */
++#ifdef CONFIG_ASPEED_AST2600
++		uint32_t reserved_1		: 1;	/* bit[11] */
++#else		
++		uint32_t phy_link_lvl_dtct	: 1;	/* bit[11] */
++#endif		
++		uint32_t rx_runt		: 1;	/* bit[12] */
++		uint32_t jumbo_lf		: 1;	/* bit[13] */
++		uint32_t rx_alladr		: 1;	/* bit[14] */
++		uint32_t rx_ht_en		: 1;	/* bit[15] */
++		uint32_t rx_multipkt_en		: 1;	/* bit[16] */
++		uint32_t rx_broadpkt_en		: 1;	/* bit[17] */
++		uint32_t discard_crcerr		: 1;	/* bit[18] */
++		uint32_t speed_100		: 1;	/* bit[19] */
++		uint32_t reserved_0		: 11;	/* bit[30:20] */
++		uint32_t sw_rst			: 1;	/* bit[31] */
++	}b;
++} mac_cr_t;
++// ========================================================
++// For ncsi.c
++
++#define DEF_GPACKAGE2NUM                         1         // Default value
++#define DEF_GCHANNEL2NUM                         1         // Default value
++
++//---------------------------------------------------------
++// Variable
++//---------------------------------------------------------
++//NC-SI Command Packet
++typedef struct {
++//Ethernet Header
++	unsigned char        DA[6];                        // Destination Address
++	unsigned char        SA[6];                        // Source Address
++	uint16_t       EtherType;                    // DMTF NC-SI, it should be 0x88F8
++//NC-SI Control Packet
++	unsigned char        MC_ID;                        // Management Controller should set this field to 0x00
++	unsigned char        Header_Revision;              // For NC-SI 1.0 spec, this field has to set 0x01
++	unsigned char        Reserved_1;                   // Reserved has to set to 0x00
++	unsigned char        IID;                          // Instance ID
++	unsigned char        Command;
++//	unsigned char        Channel_ID;
++	unsigned char        ChID;
++	uint16_t	Payload_Length;               // Payload Length = 12 bits, 4 bits are reserved
++	uint32_t	Reserved_2;
++	uint32_t	Reserved_3;
++
++	uint16_t	Reserved_4;
++	uint16_t	Reserved_5;
++	uint16_t	Response_Code;
++	uint16_t       Reason_Code;
++	unsigned char        Payload_Data[64];
++#if !defined(SLT_UBOOT)
++}  NCSI_Command_Packet;
++#else
++}  __attribute__ ((__packed__)) NCSI_Command_Packet;
++#endif
++
++//NC-SI Response Packet
++typedef struct {
++	unsigned char        DA[6];
++	unsigned char        SA[6];
++	uint16_t       EtherType;                    //DMTF NC-SI
++//NC-SI Control Packet
++	unsigned char        MC_ID;                        //Management Controller should set this field to 0x00
++	unsigned char        Header_Revision;              //For NC-SI 1.0 spec, this field has to set 0x01
++	unsigned char        Reserved_1;                   //Reserved has to set to 0x00
++	unsigned char        IID;                          //Instance ID
++	unsigned char        Command;
++//	unsigned char        Channel_ID;
++	unsigned char        ChID;
++	uint16_t       Payload_Length;               //Payload Length = 12 bits, 4 bits are reserved
++	uint16_t       Reserved_2;
++	uint16_t       Reserved_3;
++	uint16_t       Reserved_4;
++	uint16_t       Reserved_5;
++
++	uint16_t       Response_Code;
++	uint16_t       Reason_Code;
++	unsigned char        Payload_Data[64];
++#if !defined(SLT_UBOOT)
++}  NCSI_Response_Packet;
++#else
++}  __attribute__ ((__packed__)) NCSI_Response_Packet;
++#endif
++
++typedef struct {
++	unsigned char        All_ID                                   ;
++	unsigned char        Package_ID                               ;
++	unsigned char        Channel_ID                               ;
++	uint32_t Capabilities_Flags                       ;
++	uint32_t Broadcast_Packet_Filter_Capabilities     ;
++	uint32_t Multicast_Packet_Filter_Capabilities     ;
++	uint32_t Buffering_Capabilities                   ;
++	uint32_t AEN_Control_Support                      ;
++	unsigned char        VLAN_Filter_Count                        ;
++	unsigned char        Mixed_Filter_Count                       ;
++	unsigned char        Multicast_Filter_Count                   ;
++	unsigned char        Unicast_Filter_Count                     ;
++	unsigned char        VLAN_Mode_Support                        ;
++	unsigned char        Channel_Count                            ;
++	uint32_t PCI_DID_VID                              ;
++	uint32_t manufacturer_id                           ;
++} NCSI_Capability;
++
++typedef struct {
++	mac_cr_t maccr;
++	uint32_t mac_madr;
++	uint32_t mac_ladr;
++	uint32_t mac_fear;
++
++	uint32_t WDT_00c                       ;
++	uint32_t WDT_02c                       ;
++	uint32_t WDT_04c                       ;
++
++	int8_t                 SCU_oldvld;
++} mac_reg_t;
++typedef struct {
++	uint8_t ast2600;
++	uint8_t ast2500;
++	uint8_t mac_num;
++	uint8_t is_new_mdio_reg[4];
++
++	uint8_t is_1g_valid[4];
++	uint8_t at_least_1g_valid;
++	uint8_t MHCLK_Ratio;
++} mac_env_t;
++
++typedef union {
++	uint32_t w;
++	struct {
++		uint32_t skip_phy_init	: 1;	/* bit[0] */
++		uint32_t skip_phy_deinit: 1;	/* bit[1] */
++		uint32_t skip_phy_id_check	: 1;	/* bit[2] */
++		uint32_t reserved_0	: 1;	/* bit[3] */
++		uint32_t phy_int_loopback : 1;	/* bit[4] */
++		uint32_t mac_int_loopback : 1;	/* bit[5] */
++		uint32_t phy_rx_delay_en: 1;	/* bit[6] */
++		uint32_t phy_tx_delay_en: 1;	/* bit[7] */
++		uint32_t rmii_50m_out	: 1;	/* bit[8] */
++		uint32_t rmii_phy_in	: 1;	/* bit[9] */
++		uint32_t inv_rgmii_rxclk: 1;	/* bit[10] */
++		uint32_t reserved_2	: 1;	/* bit[11] */
++		uint32_t single_packet	: 1;	/* bit[12] */
++		uint32_t full_range	: 1;	/* bit[13] */
++		uint32_t reserved_3	: 2;	/* bit[15:14] */
++		uint32_t print_ncsi	: 1;	/* bit[16] */
++		uint32_t skip_rx_err	: 1;	/* bit[17] */
++	} b;
++} mac_arg_ctrl_t;
++typedef struct {
++	uint32_t run_mode;		/* select dedicated or NCSI */
++	uint32_t mac_idx;		/* argv[1] */
++	uint32_t mdio_idx;
++	uint32_t run_speed;		/* argv[2] for dedicated */
++	mac_arg_ctrl_t ctrl;		/* argv[3] for dedicated 
++					   argv[6] for ncsi */
++	uint32_t loop_max;		/* argv[4] for dedicated */
++	uint32_t loop_inf;		/* argv[4] for dedicated */
++
++	uint32_t GPackageTolNum;	/* argv[2] for ncsi */
++	uint32_t GChannelTolNum;	/* argv[3] for ncsi */
++	
++	uint32_t test_mode;		/* argv[5] for dedicated
++					   argv[4] for ncsi */
++
++	uint32_t phy_addr;		/* argv[6] for dedicated */
++	uint32_t delay_scan_range;	/* argv[7] for dedicated
++					   argv[5] for ncsi */	
++	uint32_t ieee_sel;		/* argv[7] for dedicated */
++
++	uint32_t GARPNumCnt;		/* argv[7] for ncsi */
++	uint32_t user_def_val;		/* argv[8] for dedicated */
++} mac_arg_t;
++typedef struct {
++	uint32_t mac_idx;
++	uint32_t mac_base;
++	uint32_t mdio_idx;
++	uint32_t mdio_base;
++	uint32_t is_rgmii;
++	uint32_t ieee_sel;		/* derived from delay_scan_range */
++
++	uint32_t tdes_base;
++	uint32_t rdes_base;
++
++	uint32_t ncsi_tdes_base;
++	uint32_t ncsi_rdes_base;
++
++	uint32_t LOOP_CheckNum                 ;
++	uint32_t CheckBuf_MBSize               ;
++	uint32_t timeout_th;	/* time out threshold (varies with run-speed) */
++
++	uint32_t loop_max;
++	uint32_t loop_of_cnt;
++	uint32_t loop_cnt;
++	uint32_t speed_idx;
++	int                  NCSI_RxTimeOutScale           ;
++
++	uint8_t speed_cfg[3];
++	uint8_t speed_sel[3];
++
++	/* test mode */
++	uint8_t delay_margin;
++	uint8_t tm_tx_only;
++	int8_t                 TM_IEEE                       ;//test_mode
++	int8_t                 TM_IOTiming                   ;//test_mode
++	int8_t                 TM_IOStrength                 ;//test_mode
++	int8_t                 TM_TxDataEn                   ;//test_mode
++	int8_t                 TM_RxDataEn                   ;//test_mode
++	int8_t                 TM_WaitStart                  ;//test_mode
++	int8_t                 TM_DefaultPHY                 ;//test_mode
++	int8_t                 TM_NCSI_DiSChannel            ;//test_mode
++
++	int8_t                 IO_MrgChk                     ;
++
++
++} MAC_Running;
++
++typedef struct {
++	uint8_t SA[6];
++} MAC_Information;
++
++typedef struct {
++	uint32_t mdio_base;
++	uint32_t loopback;
++	uint8_t phy_name[64];
++	int8_t                 default_phy                   ;
++	int8_t                 Adr                           ;
++
++	uint16_t id2                       ;
++	uint16_t id1                       ;
++
++	uint32_t PHY_00h                       ;
++	uint32_t PHY_06h                       ;
++	uint32_t PHY_09h                       ;
++	uint32_t PHY_0eh                       ;
++	uint32_t PHY_10h                       ;
++	uint32_t PHY_11h                       ;
++	uint32_t PHY_12h                       ;
++	uint32_t PHY_14h                       ;
++	uint32_t PHY_15h                       ;
++	uint32_t PHY_18h                       ;
++	uint32_t PHY_19h                       ;
++	uint32_t PHY_1ch                       ;
++	uint32_t PHY_1eh                       ;
++	uint32_t PHY_1fh                       ;
++	uint32_t PHY_06hA[7]                   ;
++
++	uint32_t RMIICK_IOMode                 ;
++} MAC_PHY;
++
++#ifdef CONFIG_ASPEED_AST2600
++typedef union {
++	uint32_t w;
++	struct {
++		uint32_t tx_delay_1		: 6;	/* bit[5:0] */
++		uint32_t tx_delay_2		: 6;	/* bit[11:6] */
++		uint32_t rx_delay_1		: 6;	/* bit[17:12] */
++		uint32_t rx_delay_2		: 6;	/* bit[23:18] */
++		uint32_t rx_clk_inv_1 		: 1;	/* bit[24] */
++		uint32_t rx_clk_inv_2 		: 1;	/* bit[25] */
++		uint32_t rmii_tx_data_at_falling_1 : 1; /* bit[26] */
++		uint32_t rmii_tx_data_at_falling_2 : 1; /* bit[27] */
++		uint32_t rgmiick_pad_dir	: 1;	/* bit[28] */
++		uint32_t rmii_50m_oe_1 		: 1;	/* bit[29] */
++		uint32_t rmii_50m_oe_2		: 1;	/* bit[30] */
++		uint32_t rgmii_125m_o_sel 	: 1;	/* bit[31] */
++	}b;
++} mac_delay_1g_t;
++
++typedef union {
++	uint32_t w;
++	struct {
++		uint32_t tx_delay_1		: 6;	/* bit[5:0] */
++		uint32_t tx_delay_2		: 6;	/* bit[11:6] */
++		uint32_t rx_delay_1		: 6;	/* bit[17:12] */
++		uint32_t rx_delay_2		: 6;	/* bit[23:18] */
++		uint32_t rx_clk_inv_1 		: 1;	/* bit[24] */
++		uint32_t rx_clk_inv_2 		: 1;	/* bit[25] */
++		uint32_t reserved_0 		: 6;	/* bit[31:26] */
++	}b;
++} mac_delay_100_10_t;
++#else
++typedef union {
++	uint32_t w;
++	struct {
++		uint32_t tx_delay_1		: 6;	/* bit[5:0] */
++		uint32_t tx_delay_2		: 6;	/* bit[11:6] */
++		uint32_t rx_delay_1		: 6;	/* bit[17:12] */
++		uint32_t rx_delay_2		: 6;	/* bit[23:18] */		
++		uint32_t rmii_tx_data_at_falling_1 : 1; /* bit[24] */
++		uint32_t rmii_tx_data_at_falling_2 : 1; /* bit[25] */
++		uint32_t reserved		: 3;	/* bit[28:26] */
++		uint32_t rmii_50m_oe_1 		: 1;	/* bit[29] */
++		uint32_t rmii_50m_oe_2		: 1;	/* bit[30] */
++		uint32_t rgmii_125m_o_sel 	: 1;	/* bit[31] */
++	}b;
++} mac_delay_1g_t;
++
++typedef union {
++	uint32_t w;
++	struct {
++		uint32_t tx_delay_1		: 6;	/* bit[5:0] */
++		uint32_t tx_delay_2		: 6;	/* bit[11:6] */
++		uint32_t rx_delay_1		: 6;	/* bit[17:12] */
++		uint32_t rx_delay_2		: 6;	/* bit[23:18] */
++		uint32_t enable 		: 1;	/* bit[24] */
++		uint32_t reserved_0 		: 7;	/* bit[31:25] */
++	}b;
++} mac_delay_100_10_t;
++#endif
++
++typedef struct mac_delay_1g_reg_s {
++	uint32_t addr;
++	int32_t tx_min;
++	int32_t tx_max;
++	int32_t rx_min;
++	int32_t rx_max;
++	int32_t rmii_tx_min;
++	int32_t rmii_tx_max;
++	int32_t rmii_rx_min;
++	int32_t rmii_rx_max;
++	mac_delay_1g_t value;	/* backup register value */
++} mac_delay_1g_reg_t;
++
++typedef struct mac_delay_100_10_reg_s {
++	uint32_t addr;
++	int32_t tx_min;
++	int32_t tx_max;
++	int32_t rx_min;
++	int32_t rx_max;
++	mac_delay_100_10_t value;
++} mac_delay_100_10_reg_t;
++
++#ifdef CONFIG_ASPEED_AST2600
++typedef union {
++	uint32_t w;
++	struct {
++		uint32_t mac3_tx_drv		: 2;	/* bit[1:0] */
++		uint32_t mac4_tx_drv		: 2;	/* bit[3:2] */
++		uint32_t reserved_0		: 28;	/* bit[31:4] */
++	}b;
++} mac34_drv_t;
++typedef struct mac34_drv_reg_s {
++	uint32_t addr;
++	uint32_t drv_max;
++	mac34_drv_t value;
++} mac34_drv_reg_t;
++
++#else
++typedef union {
++	uint32_t w;
++	struct {
++		uint32_t reserved_0		: 8;	/* bit[7:0] */
++		uint32_t mac1_rmii_tx_drv	: 1;	/* bit[8] */
++		uint32_t mac1_rgmii_tx_drv	: 1;	/* bit[9] */
++		uint32_t mac2_rmii_tx_drv	: 1;	/* bit[10] */
++		uint32_t mac2_rgmii_tx_drv	: 1;	/* bit[11] */
++		uint32_t reserved_1		: 20;	/* bit[31:12] */
++	}b;
++} mac12_drv_t;
++
++typedef struct mac12_drv_reg_s {
++	uint32_t addr;
++	uint32_t drv_max;
++	mac12_drv_t value;
++} mac12_drv_reg_t;
++#endif
++
++typedef struct delay_scan_s {
++	int8_t begin;
++	int8_t end;
++	int8_t step;
++	int8_t orig;
++} delay_scan_t;
++typedef struct {
++	/* driving strength */
++#ifdef CONFIG_ASPEED_AST2600
++	mac34_drv_reg_t mac34_drv_reg;
++#else	
++	mac12_drv_reg_t mac12_drv_reg;
++#endif
++	uint32_t drv_upper_bond;
++	uint32_t drv_lower_bond;
++	uint32_t drv_curr;
++
++	mac_delay_1g_reg_t mac12_1g_delay;
++	mac_delay_1g_reg_t mac34_1g_delay;
++	mac_delay_100_10_reg_t mac12_100m_delay;
++	mac_delay_100_10_reg_t mac34_100m_delay;
++	mac_delay_100_10_reg_t mac12_10m_delay;
++	mac_delay_100_10_reg_t mac34_10m_delay;
++
++	delay_scan_t tx_delay_scan;
++	delay_scan_t rx_delay_scan;	
++
++	uint8_t                 Dly_in_reg_idx;
++	int8_t                Dly_in_min                    ;
++	uint8_t                 Dly_in_max                    ;
++	uint8_t                 Dly_out_reg_idx               ;
++	int8_t                Dly_out_min                   ;
++	uint8_t                 Dly_out_max                   ;	
++	
++	uint8_t                 Dly_in                        ;
++	uint8_t                 Dly_in_selval                 ;
++	uint8_t                 Dly_out                       ;
++	uint8_t                 Dly_out_selval                ;
++	int8_t result;
++	int8_t result_history[128][64];
++	uint32_t init_done;
++} MAC_IO;
++typedef struct {
++#ifdef Enable_ShowBW
++	double               Total_frame_len               ;//__attribute__ ((aligned (8)));
++#endif
++	uint32_t Des_Num                       ;
++	uint32_t Des_Num_Org                   ;
++	uint32_t DMABuf_Size                   ;
++	uint32_t DMABuf_Num                    ;
++
++	uint32_t *FRAME_LEN                    ;
++	uint32_t FRAME_LEN_Cur                 ;
++	uint32_t *wp_lst                       ;
++	uint32_t wp_fir                        ;
++
++	uint32_t DMA_Base_Setup                 ;
++	uint32_t DMA_Base_Tx                  ;
++	uint32_t DMA_Base_Rx                   ;
++
++	uint32_t ARP_data[16]                  ;
++	uint32_t TxDes0DW                      ;
++	uint32_t RxDes0DW                      ;
++	uint32_t RxDes3DW                      ;
++
++	uint8_t                 number_chl                    ;
++	uint8_t                 number_pak                    ;
++	char                 NCSI_RxEr                     ;
++	uint32_t NCSI_TxDWBUF[512]             ;
++	uint32_t NCSI_RxDWBUF[512]             ;
++	char                 NCSI_CommandStr[512]          ;
++	unsigned char        *NCSI_TxByteBUF               ;
++	unsigned char        *NCSI_RxByteBUF               ;
++	unsigned char        NCSI_Payload_Data[16]         ;
++	uint32_t Payload_Checksum_NCSI         ;
++} MAC_Data;
++
++typedef struct {
++	uint32_t warn;
++	uint32_t error;
++	uint32_t desc;
++	uint32_t ncsi;
++	uint32_t error_backup;
++	uint32_t ncsi_backup;
++	uint32_t n_desc_fail;
++	uint8_t print_en;
++	uint8_t all_fail;
++} MAC_Flag;
++
++typedef struct {
++	mac_reg_t reg;
++	mac_env_t env;
++	mac_arg_t arg;	
++	MAC_Running          run;
++	MAC_Information      inf;
++	MAC_PHY              phy;
++	MAC_IO               io;
++	MAC_Data             dat;
++	MAC_Flag             flg;
++	NCSI_Command_Packet  ncsi_req;
++	NCSI_Response_Packet ncsi_rsp;
++	NCSI_Capability      ncsi_cap;	
++} MAC_ENGINE;
++typedef void (* PHY_SETTING) (MAC_ENGINE *);
++typedef struct {
++	PHY_SETTING          fp_set;
++	PHY_SETTING          fp_clr;
++} PHY_ENGINE;
++
++#undef GLOBAL
++#ifdef NCSI_C
++#define GLOBAL
++#else
++#define GLOBAL    extern
++#endif
++
++GLOBAL  char phy_ncsi (MAC_ENGINE *eng);
++
++// ========================================================
++// For mactest
++
++#undef GLOBAL
++#ifdef MACTEST_C
++#define GLOBAL
++#else
++#define GLOBAL    extern
++#endif
++
++#define MODE_DEDICATED                           0x01
++#define MODE_NCSI                                0x02
++
++GLOBAL  uint8_t            *mmiobase;
++GLOBAL  uint32_t ulPCIBaseAddress;
++GLOBAL  uint32_t ulMMIOBaseAddress;
++
++GLOBAL  uint8_t             display_lantest_log_msg;
++
++// ========================================================
++// For mac.c
++#undef GLOBAL
++#ifdef MAC_C
++#define GLOBAL
++#else
++#define GLOBAL    extern
++#endif
++
++#if defined(MAC_C)
++static  const  char version_name[] = VER_NAME;
++static  const  uint8_t IOValue_Array_A0[16] = {8,1, 10,3, 12,5, 14,7, 0,9, 2,11, 4,13, 6,15}; // AST2300-A0
++#endif
++
++GLOBAL void    debug_pause (void);
++GLOBAL uint32_t Read_Mem_Dat_NCSI_DD (uint32_t addr);
++GLOBAL uint32_t Read_Mem_Des_NCSI_DD (uint32_t addr);
++
++
++
++
++
++
++
++GLOBAL void Write_Mem_Dat_NCSI_DD (uint32_t addr, uint32_t data);
++GLOBAL void Write_Mem_Des_NCSI_DD (uint32_t addr, uint32_t data);
++
++
++GLOBAL void Write_Reg_TIMER_DD (uint32_t addr, uint32_t data);
++
++
++
++
++
++
++GLOBAL void    PrintTest (MAC_ENGINE *eng);
++GLOBAL void    PrintIOTimingBund (MAC_ENGINE *eng);
++
++
++
++GLOBAL void    PrintPHYAdr (MAC_ENGINE *eng);
++
++
++
++
++
++GLOBAL void    setup_arp (MAC_ENGINE *eng);
++GLOBAL void    TestingSetup (MAC_ENGINE *eng);
++
++
++
++GLOBAL void    init_mac (MAC_ENGINE *eng);
++GLOBAL char TestingLoop (MAC_ENGINE *eng, uint32_t loop_checknum);
++
++GLOBAL void    init_phy (MAC_ENGINE *eng, PHY_ENGINE *phyeng);
++
++
++GLOBAL void    phy_select (MAC_ENGINE *eng, PHY_ENGINE *phyeng);
++GLOBAL void    recov_phy (MAC_ENGINE *eng, PHY_ENGINE *phyeng);
++GLOBAL int     FindErr (MAC_ENGINE *eng, int value);
++GLOBAL int     FindErr_Des (MAC_ENGINE *eng, int value);
++GLOBAL void    PrintIO_Header (MAC_ENGINE *eng, uint8_t option);
++
++
++
++GLOBAL void    FPri_ErrFlag (MAC_ENGINE *eng, uint8_t option);
++
++GLOBAL void init_hwtimer( void );
++GLOBAL void delay_hwtimer(uint16_t msec);
++
++// ========================================================
++// For PHYGPIO.c
++#undef GLOBAL
++#ifdef PHYGPIO_C
++#define GLOBAL
++#else
++#define GLOBAL    extern
++#endif
++
++
++// ========================================================
++// For PHYSPECIAL.c
++#undef GLOBAL
++#ifdef PHYMISC_C
++#define GLOBAL
++#else
++#define GLOBAL    extern
++#endif
++
++
++#endif // End COMMINF_H
+diff -Naur uboot/oem/ami/standalone/nettest/dramtest.c uboot_latest/oem/ami/standalone/nettest/dramtest.c
+--- uboot/oem/ami/standalone/nettest/dramtest.c	1970-01-01 05:30:00.000000000 +0530
++++ uboot_latest/oem/ami/standalone/nettest/dramtest.c	2025-08-14 18:18:32.592747281 +0530
+@@ -0,0 +1,209 @@
++/*
++ *  This program is distributed in the hope that it will be useful,
++ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
++ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ *  GNU General Public License for more details.
++ *
++ *  You should have received a copy of the GNU General Public License
++ *  along with this program; if not, write to the Free Software
++ *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
++ */
++
++//modified for spx stadalone app 
++//@author ARJUN C R arjuncr@ami.com
++
++#include <common.h>
++#include <console.h>
++#include <bootretry.h>
++#include <cli.h>
++#include <command.h>
++#include <console.h>
++
++#include <inttypes.h>
++#include <mapmem.h>
++#include <asm/io.h>
++#include <linux/compiler.h>
++
++DECLARE_GLOBAL_DATA_PTR;
++
++#define DRAM_BASE	0x80000000
++#define TIMEOUT_DRAM	5000000
++
++#ifdef CONFIG_ASPEED_AST2600
++#define BLK_SIZE_MB			64
++#define N_BLK				32
++#define MCR74_BLK_OFFSET		26
++#define MCR74_LEN_OFFSET		4
++#define MCR74_BLK_LEN_MASK		GENMASK(30, 4)
++#else
++#define BLK_SIZE_MB			16
++#define N_BLK				64
++#define MCR74_BLK_OFFSET		24
++#define MCR74_LEN_OFFSET		4
++#define MCR74_BLK_LEN_MASK		GENMASK(29, 4)
++#endif
++#define BLK_SIZE			(BLK_SIZE_MB * 1024 * 1024)
++#define N_16B_IN_BLK			(BLK_SIZE / 16)
++
++static int MMCTestBurst(u32 datagen)
++{
++	u32 data;
++	int timeout = 0;
++
++	writel(0x00000000, 0x1e6e0070);
++	writel((0x000000c1 | (datagen << 3)), 0x1e6e0070);
++
++	do {
++		data = readl(0x1e6e0070) & 0x3000;
++
++		if (data & 0x2000)
++			return 0;
++
++		if (++timeout > TIMEOUT_DRAM) {
++			printf("Timeout!!\n");
++			writel(0x00000000, 0x1e6e0070);
++			return 0;
++		}
++	} while (!data);
++
++	writel(0x00000000, 0x1e6e0070);
++
++	return 1;
++}
++
++static int MMCTestSingle(u32 datagen)
++{
++	u32 data;
++	int timeout = 0;
++
++	writel(0x00000000, 0x1e6e0070);
++	writel((0x00000085 | (datagen << 3)), 0x1e6e0070);
++
++	do {
++		data = readl(0x1e6e0070) & 0x3000;
++
++		if (data & 0x2000)
++			return 0;
++
++		if (++timeout > TIMEOUT_DRAM) {
++			printf("Timeout!!\n");
++			writel(0x00000000, 0x1e6e0070);
++
++			return 0;
++		}
++	} while (!data);
++
++	writel(0x00000000, 0x1e6e0070);
++
++	return 1;
++}
++
++static int MMCTest(void)
++{
++	unsigned int pattern;
++
++	pattern = rand();
++	writel(pattern, 0x1e6e007c);
++	printf("Pattern = %08X : ", pattern);
++
++	if(!MMCTestBurst(0))    return(0);
++	if(!MMCTestBurst(1))    return(0);
++	if(!MMCTestBurst(2))    return(0);
++	if(!MMCTestBurst(3))    return(0);
++	if(!MMCTestBurst(4))    return(0);
++	if(!MMCTestBurst(5))    return(0);
++	if(!MMCTestBurst(6))    return(0);
++	if(!MMCTestBurst(7))    return(0);
++	if(!MMCTestSingle(0))   return(0);
++	if(!MMCTestSingle(1))   return(0);
++	if(!MMCTestSingle(2))   return(0);
++	if(!MMCTestSingle(3))   return(0);
++	if(!MMCTestSingle(4))   return(0);
++	if(!MMCTestSingle(5))   return(0);
++	if(!MMCTestSingle(6))   return(0);
++	if(!MMCTestSingle(7))   return(0);
++
++	return 1;
++}
++
++static void print_usage(void)
++{
++	printf("\nASPEED DRAM BIST\n\n");
++	printf("Usage: dramtest <count> <block> <length>\n\n");
++	printf("count:  how many iterations to run (mandatory, in decimal)\n");
++	printf("        0: infinite loop.\n");
++	printf("block:  index of the address block to test "
++			"(optional, in decimal, default: 0)\n");
++	printf("        0: [%08x, %08x)\n", DRAM_BASE + BLK_SIZE * 0, DRAM_BASE + BLK_SIZE * 1);
++	printf("        1: [%08x, %08x)\n", DRAM_BASE + BLK_SIZE * 1, DRAM_BASE + BLK_SIZE * 2);
++	printf("        2: [%08x, %08x)\n", DRAM_BASE + BLK_SIZE * 2, DRAM_BASE + BLK_SIZE * 3);
++	printf("        n: [80000000 + n*%dMB, 80000000 + (n+1)*%dMB)\n", BLK_SIZE_MB, BLK_SIZE_MB);
++	printf("           where n = [0, %d]\n", N_BLK - 1);
++	printf("length: size to test (optional, in hex, default: 0x10000)\n");
++	printf("        0x0: test the whole memory block %dMB\n", BLK_SIZE_MB);
++	printf("        0x1: test the first 16 Bytes of the memory block\n");
++	printf("        0x2: test the first 2*16 Bytes of the memory block\n");
++	printf("        n  : test the first n*16 Bytes of the memory block\n");
++	printf("             where n = [0x00000001, 0x%08x]\n", N_16B_IN_BLK);
++	printf("\n\n");
++}
++
++int do_ast_dramtest(int argc, char *const argv[])
++{
++	u32 PassCnt = 0;
++	unsigned long Testcounter = 0;
++	unsigned long block = 0;
++	unsigned long length = 0x10000;
++	int ret=0;
++
++	if (argc < 2) {
++		ret = 0;
++		goto cmd_err;
++	}
++
++	ret = CMD_RET_USAGE;
++	switch (argc) {
++	case 4:
++		if (strict_strtoul(argv[3], 16, &length) < 0)
++			goto cmd_err;
++	case 3:
++		if (strict_strtoul(argv[2], 10, &block) < 0)
++			goto cmd_err;
++	case 2:
++		if (strict_strtoul(argv[1], 10, &Testcounter) < 0)
++			goto cmd_err;
++		break;
++	}
++
++	if (length == 0)
++		length = N_16B_IN_BLK;
++
++	printf("Test range: 0x%08lx - 0x%08lx\n", DRAM_BASE + (block << MCR74_BLK_OFFSET),
++	       DRAM_BASE | (block << MCR74_BLK_OFFSET) | ((length - 1) << MCR74_LEN_OFFSET) | 0xf);
++
++	ret = 1;
++	writel(0xfc600309, 0x1e6e0000);
++	while ((Testcounter > PassCnt) || (Testcounter == 0)) {
++		clrsetbits_le32(0x1e6e0074, MCR74_BLK_LEN_MASK,
++				(block << MCR74_BLK_OFFSET) | ((length - 1) << MCR74_LEN_OFFSET));
++
++		if (!MMCTest()) {
++			printf("FAIL %d/%ld (fail DQ 0x%08x)\n", PassCnt, Testcounter,
++			       readl(0x1e6e0078));
++			ret = 0;
++			break;
++		} else {
++			PassCnt++;
++			printf("Pass %d/%ld\n", PassCnt, Testcounter);
++		}
++
++		if (ctrlc())
++			break;
++	}
++
++	return ret;
++
++cmd_err:	
++	print_usage();
++	return ret;
++}
+diff -Naur uboot/oem/ami/standalone/nettest/mac.h uboot_latest/oem/ami/standalone/nettest/mac.h
+--- uboot/oem/ami/standalone/nettest/mac.h	2025-08-14 18:17:05.349756511 +0530
++++ uboot_latest/oem/ami/standalone/nettest/mac.h	2025-08-14 18:18:32.592323966 +0530
+@@ -3,84 +3,84 @@
+  * Copyright (C) ASPEED Technology Inc.
+  */
+ 
+-#ifndef MAC_H
+-#define MAC_H
+-
+-
+-#include <common.h>
+-#include <command.h>
+-
+-#include "ncsi.h"
+-#include <asm/io.h>
+-
+-// --------------------------------------------------------------
+-// Define
+-// --------------------------------------------------------------
+-//#define Enable_MAC_SWRst               //[off]
+-#define   Enable_No_IOBoundary         //[ON]
+-//#define Enable_Dual_Mode               //[off]
+-
+-//#define Enable_Runt
+-//#define Enable_ShowBW
+-
+-#define TX_DELAY_SCALING			2
+-#define RX_DELAY_SCALING			2
+-
+-//#define SelectSimpleBoundary                                    //[off] Using in debug
+-//#define SelectSimpleData                                        //[off] Using in debug
+-//#define SelectSimpleLength                       1514           //[off] 60(0x3c) ~ 1514(0x5ea); 1512(0x5e8)
+-//#define SelectSimpleDA                                          //[off] Using in debug
+-//#define SelectSimpleDes                                         //[off]
+-//#define SelectLengthInc                                         //[off] Using in debug
+-
+-#define   SimpleData_Fix                                        //[ON] Using in debug
+-#define     SimpleData_FixNum                    12
+-#define     SimpleData_FixVal00                  0x00000000     //[0]no SelectSimpleDA: (60: 0412 8908)(1512: e20d e9da)
+-#define     SimpleData_FixVal01                  0xffffffff     //[0]no SelectSimpleDA: (60: f48c f14d)(1512: af05 260c)
+-#define     SimpleData_FixVal02                  0x55555555     //[0]no SelectSimpleDA: (60: 5467 5ecb)(1512: d90a 5368)
+-#define     SimpleData_FixVal03                  0xaaaaaaaa     //[0]no SelectSimpleDA: (60: a4f9 268e)(1512: 9402 9cbe)
+-#define     SimpleData_FixVal04                  0x5a5a5a5a     //[1]no SelectSimpleDA: (60: 7f01 e22d)(1512: 4fd3 8012)
+-#define     SimpleData_FixVal05                  0xc3c3c3c3     //[1]no SelectSimpleDA: (60: 5916 02d5)(1512: 99f1 6127)
+-#define     SimpleData_FixVal06                  0x96969696     //[1]no SelectSimpleDA: (60: 0963 d516)(1512: a2f6 db95)
+-#define     SimpleData_FixVal07                  0xf0f0f0f0     //[1]no SelectSimpleDA: (60: dfea 4dab)(1512: 39dc f576)
+-#define     SimpleData_FixVal08                  0x5555aaaa     //[2]no SelectSimpleDA: (60: b61b 5777)(1512: 4652 ddb0)
+-#define     SimpleData_FixVal09                  0xffff0000     //[2]no SelectSimpleDA: (60: 16f0 f8f1)(1512: 305d a8d4)
+-#define     SimpleData_FixVal10                  0x5a5aa5a5     //[2]no SelectSimpleDA: (60: 9d7d eb91)(1512: d08b 0eca)
+-#define     SimpleData_FixVal11                  0xc3c33c3c     //[2]no SelectSimpleDA: (60: bb6a 0b69)(1512: 06a9 efff)
+-
+-#define   SimpleData_XORVal                      0x00000000
+-//#define   SimpleData_XORVal                    0xffffffff
+-
+-#define   SelectSimpleDA_Dat0                    0x67052301
+-#define   SelectSimpleDA_Dat1                    0xe0cda089
+-#define   SelectSimpleDA_Dat2                    0x98badcfe
+-
+-#define   SelectWOLDA_DatH                       0x206a
+-#define   SelectWOLDA_DatL                       0x8a374d9b
+-
+-/* MByte per second to move data */
+-#define MOVE_DATA_MB_SEC			800
+-
+-//---------------------------------------------------------
+-// Frame size
+-//---------------------------------------------------------
+-#define ENABLE_RAND_SIZE                         0
+-#define   RAND_SIZE_SED                          0xffccd
+-#define   RAND_SIZE_SIMPLE                       0
+-#define   RAND_SIZE_MIN                          60
+-#define   RAND_SIZE_MAX                          1514
+-
+-#define FRAME_SELH_PERD                          7
+-  #ifdef SelectSimpleLength
+-//    #define FRAME_LENH                           ( SelectSimpleLength + 1 )
+-//    #define FRAME_LENL                           ( SelectSimpleLength     )
+-    #define FRAME_LENH                           SelectSimpleLength
+-    #define FRAME_LENL                           SelectSimpleLength
+-  #else
+-//    #define FRAME_LENH                           1514           //max:1514
+-//    #define FRAME_LENL                           1513           //max:1514
+-    #define FRAME_LENH                           1514           //max:1514
+-    #define FRAME_LENL                           1514           //max:1514
+-  #endif
+-
+-#endif // MAC_H
++#ifndef MAC_H
++#define MAC_H
++
++
++#include <common.h>
++#include <command.h>
++
++#include "ncsi.h"
++#include <asm/io.h>
++
++// --------------------------------------------------------------
++// Define
++// --------------------------------------------------------------
++//#define Enable_MAC_SWRst               //[off]
++#define   Enable_No_IOBoundary         //[ON]
++//#define Enable_Dual_Mode               //[off]
++
++//#define Enable_Runt
++//#define Enable_ShowBW
++
++#define TX_DELAY_SCALING			2
++#define RX_DELAY_SCALING			2
++
++//#define SelectSimpleBoundary                                    //[off] Using in debug
++//#define SelectSimpleData                                        //[off] Using in debug
++//#define SelectSimpleLength                       1514           //[off] 60(0x3c) ~ 1514(0x5ea); 1512(0x5e8)
++//#define SelectSimpleDA                                          //[off] Using in debug
++//#define SelectSimpleDes                                         //[off]
++//#define SelectLengthInc                                         //[off] Using in debug
++
++#define   SimpleData_Fix                                        //[ON] Using in debug
++#define     SimpleData_FixNum                    12
++#define     SimpleData_FixVal00                  0x00000000     //[0]no SelectSimpleDA: (60: 0412 8908)(1512: e20d e9da)
++#define     SimpleData_FixVal01                  0xffffffff     //[0]no SelectSimpleDA: (60: f48c f14d)(1512: af05 260c)
++#define     SimpleData_FixVal02                  0x55555555     //[0]no SelectSimpleDA: (60: 5467 5ecb)(1512: d90a 5368)
++#define     SimpleData_FixVal03                  0xaaaaaaaa     //[0]no SelectSimpleDA: (60: a4f9 268e)(1512: 9402 9cbe)
++#define     SimpleData_FixVal04                  0x5a5a5a5a     //[1]no SelectSimpleDA: (60: 7f01 e22d)(1512: 4fd3 8012)
++#define     SimpleData_FixVal05                  0xc3c3c3c3     //[1]no SelectSimpleDA: (60: 5916 02d5)(1512: 99f1 6127)
++#define     SimpleData_FixVal06                  0x96969696     //[1]no SelectSimpleDA: (60: 0963 d516)(1512: a2f6 db95)
++#define     SimpleData_FixVal07                  0xf0f0f0f0     //[1]no SelectSimpleDA: (60: dfea 4dab)(1512: 39dc f576)
++#define     SimpleData_FixVal08                  0x5555aaaa     //[2]no SelectSimpleDA: (60: b61b 5777)(1512: 4652 ddb0)
++#define     SimpleData_FixVal09                  0xffff0000     //[2]no SelectSimpleDA: (60: 16f0 f8f1)(1512: 305d a8d4)
++#define     SimpleData_FixVal10                  0x5a5aa5a5     //[2]no SelectSimpleDA: (60: 9d7d eb91)(1512: d08b 0eca)
++#define     SimpleData_FixVal11                  0xc3c33c3c     //[2]no SelectSimpleDA: (60: bb6a 0b69)(1512: 06a9 efff)
++
++#define   SimpleData_XORVal                      0x00000000
++//#define   SimpleData_XORVal                    0xffffffff
++
++#define   SelectSimpleDA_Dat0                    0x67052301
++#define   SelectSimpleDA_Dat1                    0xe0cda089
++#define   SelectSimpleDA_Dat2                    0x98badcfe
++
++#define   SelectWOLDA_DatH                       0x206a
++#define   SelectWOLDA_DatL                       0x8a374d9b
++
++/* MByte per second to move data */
++#define MOVE_DATA_MB_SEC			800
++
++//---------------------------------------------------------
++// Frame size
++//---------------------------------------------------------
++#define ENABLE_RAND_SIZE                         0
++#define   RAND_SIZE_SED                          0xffccd
++#define   RAND_SIZE_SIMPLE                       0
++#define   RAND_SIZE_MIN                          60
++#define   RAND_SIZE_MAX                          1514
++
++#define FRAME_SELH_PERD                          7
++  #ifdef SelectSimpleLength
++//    #define FRAME_LENH                           ( SelectSimpleLength + 1 )
++//    #define FRAME_LENL                           ( SelectSimpleLength     )
++    #define FRAME_LENH                           SelectSimpleLength
++    #define FRAME_LENL                           SelectSimpleLength
++  #else
++//    #define FRAME_LENH                           1514           //max:1514
++//    #define FRAME_LENL                           1513           //max:1514
++    #define FRAME_LENH                           1514           //max:1514
++    #define FRAME_LENL                           1514           //max:1514
++  #endif
++
++#endif // MAC_H
+diff -Naur uboot/oem/ami/standalone/nettest/mactest.c uboot_latest/oem/ami/standalone/nettest/mactest.c
+--- uboot/oem/ami/standalone/nettest/mactest.c	2025-08-14 18:17:05.349782139 +0530
++++ uboot_latest/oem/ami/standalone/nettest/mactest.c	2025-08-14 18:18:32.592798063 +0530
+@@ -652,7 +652,9 @@
+ 
+ 	if (p_eng->run.IO_MrgChk ||
+ 	    (p_eng->arg.run_speed == SET_1G_100M_10MBPS) ||
+-	    (p_eng->arg.run_speed == SET_100M_10MBPS)) {
++	    (p_eng->arg.run_speed == SET_100M_10MBPS) ||
++	    (p_eng->arg.run_speed == SET_1G_100MBPS) ||
++	    (p_eng->arg.run_speed == SET_1G_10MBPS)) {
+ 		p_eng->run.LOOP_CheckNum = p_eng->run.loop_max;
+ 	} else {
+ 		switch (p_eng->arg.run_speed) {
+@@ -770,6 +772,8 @@
+ 				p_eng->arg.loop_max = DEF_GLOOP_MAX;
+ 				break;
+ 			case SET_1G_100M_10MBPS:
++			case SET_1G_100MBPS:
++			case SET_1G_10MBPS:
+ 				p_eng->arg.loop_max = DEF_GLOOP_MAX * 20;
+ 				break;
+ 			case SET_100M_10MBPS:
+@@ -834,30 +838,17 @@
+ 		else {
+ 			switch (p_eng->arg.run_speed) {
+ 			case SET_1GBPS:
+-				p_eng->dat.Des_Num =
+-				    p_eng->run.delay_margin
+-					? 100
+-					: (n_desp_min) ? 512 : 4096;
+-				break;
+ 			case SET_100MBPS:
++			case SET_1G_100MBPS:
+ 				p_eng->dat.Des_Num =
+ 				    p_eng->run.delay_margin
+ 					? 100
+ 					: (n_desp_min) ? 512 : 4096;
+ 				break;
+ 			case SET_10MBPS:
+-				p_eng->dat.Des_Num =
+-				    p_eng->run.delay_margin
+-					? 100
+-					: (n_desp_min) ? 100 : 830;
+-				break;
+ 			case SET_1G_100M_10MBPS:
+-				p_eng->dat.Des_Num =
+-				    p_eng->run.delay_margin
+-					? 100
+-					: (n_desp_min) ? 100 : 830;
+-				break;
+ 			case SET_100M_10MBPS:
++			case SET_1G_10MBPS:
+ 				p_eng->dat.Des_Num =
+ 				    p_eng->run.delay_margin
+ 					? 100
+@@ -1235,7 +1226,9 @@
+ 		p_eng->run.timeout_th = get_time_out_th(p_eng);
+ 		if (p_eng->arg.run_mode == MODE_DEDICATED) {
+ 			if ((p_eng->arg.run_speed == SET_1G_100M_10MBPS) ||
+-			    (p_eng->arg.run_speed == SET_100M_10MBPS)) {
++			    (p_eng->arg.run_speed == SET_100M_10MBPS) ||
++			    (p_eng->arg.run_speed == SET_1G_100MBPS) ||
++			    (p_eng->arg.run_speed == SET_1G_10MBPS)) {
+ 				if (p_eng->run.speed_sel[0])
+ 					p_eng->run.loop_max =
+ 					    p_eng->arg.loop_max;
+@@ -1435,7 +1428,7 @@
+ /**
+  * @brief nettest main function
+ */
+-int main_function(int argc, char * const argv[], uint32_t mode)
++int mac_test(int argc, char * const argv[], uint32_t mode)
+ {
+ 	MAC_ENGINE mac_eng;
+ 	PHY_ENGINE phy_eng;
+diff -Naur uboot/oem/ami/standalone/nettest/Makefile uboot_latest/oem/ami/standalone/nettest/Makefile
+--- uboot/oem/ami/standalone/nettest/Makefile	2025-08-14 18:17:05.349842793 +0530
++++ uboot_latest/oem/ami/standalone/nettest/Makefile	2025-08-14 18:18:32.592841469 +0530
+@@ -1,5 +1,5 @@
+ #
+-# (C) Copyright 2020
++# (C) Copyright 2025
+ # American Megatrends Inc
+ #
+ # This program is free software; you can redistribute it and/or
+@@ -18,6 +18,8 @@
+ # MA 02111-1307 USA
+ #
+ 
++# @author ARJUN C R arjuncr@ami.com
++
+ extra-y        := nettest
+ #
+ # Some versions of make do not handle trailing white spaces properly;
+@@ -33,7 +35,7 @@
+ 
+ LIB	= $(obj)/libstubs.o
+ 
+-LIBOBJS-y += stdalone.o stress.o mactest.o mem_io.o mac.o ncsi.o phy.o stduboot.o
++LIBOBJS-y += stdalone.o dramtest.o mactest.o mem_io.o mac.o ncsi.o phy.o stduboot.o
+ LIBOBJS-y += stubs.o
+ 
+ targets += $(patsubst $(obj)/%,%,$(LIB)) $(COBJS) $(LIBOBJS-y) 
+diff -Naur uboot/oem/ami/standalone/nettest/ncsi.h uboot_latest/oem/ami/standalone/nettest/ncsi.h
+--- uboot/oem/ami/standalone/nettest/ncsi.h	2025-08-14 18:17:05.349886627 +0530
++++ uboot_latest/oem/ami/standalone/nettest/ncsi.h	2025-08-14 18:18:32.592458812 +0530
+@@ -3,148 +3,148 @@
+  * Copyright (C) ASPEED Technology Inc.
+  */
+ 
+-#ifndef NCSI_H
+-#define NCSI_H
+-
+-
+-#define NCSI_RxDMA_PakSize                       2048
+-#define NCSI_RxDMA_BASE                          ( DMA_BASE + 0x00100000 )
+-
+-//---------------------------------------------------------
+-// Define
+-//---------------------------------------------------------
+-#define MAX_PACKAGE_NUM                          8      // 1 ~ 8
+-#define MAX_CHANNEL_NUM                          4      // 1 ~ 32
+-
+-//---------------------------------------------------------
+-// Function
+-//---------------------------------------------------------
+-#define SENT_RETRY_COUNT                         1
+-#define NCSI_RxDESNum                            2048
+-
+-#define NCSI_Skip_RxCRCData
+-//#define NCSI_Skip_Phase1_DeSelectPackage
+-#define NCSI_Skip_DeSelectPackage
+-//#define NCSI_Skip_DiSChannel
+-//#define NCSI_EnableDelay_DeSelectPackage
+-//#define NCSI_EnableDelay_GetLinkStatus
+-//#define NCSI_EnableDelay_EachPackage
+-//#define NCSI_VERBOSE_TEST
+-//#define Print_Version_ID
+-//#define Print_PackageName
+-#define Print_DetailFrame
+-
+-//---------------------------------------------------------
+-// Delay (ms)
+-//---------------------------------------------------------
+-#define Delay_EachPackage                        1000
+-#define Delay_DeSelectPackage                    50
+-#define Delay_GetLinkStatus                      50
+-
+-//---------------------------------------------------------
+-// PCI DID/VID & Manufacturer ID
+-//---------------------------------------------------------
+-#define ManufacturerID_Intel                     0x00000157     //343
+-#define ManufacturerID_Broadcom                  0x0000113d     //4413
+-#define ManufacturerID_Mellanox                  0x000002c9     //713
+-#define ManufacturerID_Mellanox1                 0x00008119     //33049
+-#define ManufacturerID_Emulex                    0x0000006c     //108
+-
+-//PCI VID: [163c]intel
+-//PCI VID: [8086]Intel Corporation
+-//PCI VID: [8087]Intel
+-//PCI VID: [14e4]Broadcom Corporation
+-//PCI VID: [15b3]Mellanox
+-//PCI VID: [10df]Emulex
+-#define PCI_DID_VID_Intel_82574L                 0x10d38086     // IntelR 82574L Gigabit Ethernet Controller
+-#define PCI_DID_VID_Intel_82575_10d6             0x10d68086     // 82566 DM-2-gigabyte
+-#define PCI_DID_VID_Intel_82575_10a7             0x10a78086     // 82575EB Gigabit Network Connection
+-#define PCI_DID_VID_Intel_82575_10a9             0x10a98086     // 82575EB Gigabit Network Connection
+-#define PCI_DID_VID_Intel_82576_10c9             0x10c98086     //*82576 Gigabit ET Dual Port Server Adapter
+-#define PCI_DID_VID_Intel_82576_10e6             0x10e68086     // 82576 Gigabit Network Connection
+-#define PCI_DID_VID_Intel_82576_10e7             0x10e78086     // 82576 Gigabit Network Connection
+-#define PCI_DID_VID_Intel_82576_10e8             0x10e88086     // E64750-xxx Intel Gigabit ET Quad Port Server Adapter
+-#define PCI_DID_VID_Intel_82576_1518             0x15188086     // 82576NS SerDes Gigabit Network Connectio
+-#define PCI_DID_VID_Intel_82576_1526             0x15268086     // Intel Gigabit ET2 Quad Port Server Adapter
+-#define PCI_DID_VID_Intel_82576_150a             0x150a8086     // 82576NS Gigabit Ethernet Controller
+-#define PCI_DID_VID_Intel_82576_150d             0x150d8086     // 82576 Gigabit Backplane Connection
+-#define PCI_DID_VID_Intel_82599_10fb             0x10fb8086     // 10 Gb Ethernet controller
+-#define PCI_DID_VID_Intel_82599_1557             0x15578086     // 82599EN
+-#define PCI_DID_VID_Intel_I210_1533              0x15338086     //
+-#define PCI_DID_VID_Intel_I210_1537              0x15378086     //???
+-#define PCI_DID_VID_Intel_I350_1521              0x15218086     //
+-#define PCI_DID_VID_Intel_I350_1523              0x15238086     //
+-#define PCI_DID_VID_Intel_X540                   0x15288086     //
+-#define PCI_DID_VID_Intel_X550                   0x15638086     //
+-#define PCI_DID_VID_Intel_Broadwell_DE           0x15ab8086     //PCH
+-#define PCI_DID_VID_Intel_X722_37d0              0x37d08086     //
+-#define PCI_DID_VID_Broadcom_BCM5718             0x165614e4     //
+-#define PCI_DID_VID_Broadcom_BCM5719             0x165714e4     //
+-#define PCI_DID_VID_Broadcom_BCM5720             0x165f14e4     //
+-#define PCI_DID_VID_Broadcom_BCM5725             0x164314e4     //
+-#define PCI_DID_VID_Broadcom_BCM57810S           0x168e14e4     //
+-#define PCI_DID_VID_Broadcom_Cumulus             0x16ca14e4     //
+-#define PCI_DID_VID_Broadcom_BCM57302            0x16c914e4     //
+-#define PCI_DID_VID_Broadcom_BCM957452           0x16f114e4     //
+-#define PCI_DID_VID_Mellanox_ConnectX_3_1003     0x100315b3     //*
+-#define PCI_DID_VID_Mellanox_ConnectX_3_1007     0x100715b3     //ConnectX-3 Pro
+-#define PCI_DID_VID_Mellanox_ConnectX_4          0x101515b3     //*
+-#define PCI_DID_VID_Emulex_40G                   0x072010df     //
+-
+-//---------------------------------------------------------
+-// NCSI Parameter
+-//---------------------------------------------------------
+-//Command and Response Type
+-#define CLEAR_INITIAL_STATE                      0x00           //M
+-#define SELECT_PACKAGE                           0x01           //M
+-#define DESELECT_PACKAGE                         0x02           //M
+-#define ENABLE_CHANNEL                           0x03           //M
+-#define DISABLE_CHANNEL                          0x04           //M
+-#define RESET_CHANNEL                            0x05           //M
+-#define ENABLE_CHANNEL_NETWORK_TX                0x06           //M
+-#define DISABLE_CHANNEL_NETWORK_TX               0x07           //M
+-#define AEN_ENABLE                               0x08
+-#define SET_LINK                                 0x09           //M
+-#define GET_LINK_STATUS                          0x0A           //M
+-#define SET_VLAN_FILTER                          0x0B           //M
+-#define ENABLE_VLAN                              0x0C           //M
+-#define DISABLE_VLAN                             0x0D           //M
+-#define SET_MAC_ADDRESS                          0x0E           //M
+-#define ENABLE_BROADCAST_FILTERING               0x10           //M
+-#define DISABLE_BROADCAST_FILTERING              0x11           //M
+-#define ENABLE_GLOBAL_MULTICAST_FILTERING        0x12
+-#define DISABLE_GLOBAL_MULTICAST_FILTERING       0x13
+-#define SET_NCSI_FLOW_CONTROL                    0x14
+-#define GET_VERSION_ID                           0x15           //M
+-#define GET_CAPABILITIES                         0x16           //M
+-#define GET_PARAMETERS                           0x17           //M
+-#define GET_CONTROLLER_PACKET_STATISTICS         0x18
+-#define GET_NCSI_STATISTICS                      0x19
+-#define GET_NCSI_PASS_THROUGH_STATISTICS         0x1A
+-
+-//Standard Response Code
+-#define COMMAND_COMPLETED                        0x00
+-#define COMMAND_FAILED                           0x01
+-#define COMMAND_UNAVAILABLE                      0x02
+-#define COMMAND_UNSUPPORTED                      0x03
+-
+-//Standard Reason Code
+-#define NO_ERROR                                 0x0000
+-#define INTERFACE_INITIALIZATION_REQUIRED        0x0001
+-#define PARAMETER_IS_INVALID                     0x0002
+-#define CHANNEL_NOT_READY                        0x0003
+-#define PACKAGE_NOT_READY                        0x0004
+-#define INVALID_PAYLOAD_LENGTH                   0x0005
+-#define UNKNOWN_COMMAND_TYPE                     0x7FFF
+-
+-//SET_MAC_ADDRESS
+-#define UNICAST                                  ( 0x00 << 5 )
+-#define MULTICAST                                ( 0x01 << 5 )
+-#define DISABLE_MAC_ADDRESS_FILTER               0x00
+-#define ENABLE_MAC_ADDRESS_FILTER                0x01
+-
+-//GET_LINK_STATUS
+-#define LINK_DOWN                                0
+-#define LINK_UP                                  1
+-
+-#endif // NCSI_H
++#ifndef NCSI_H
++#define NCSI_H
++
++
++#define NCSI_RxDMA_PakSize                       2048
++#define NCSI_RxDMA_BASE                          ( DMA_BASE + 0x00100000 )
++
++//---------------------------------------------------------
++// Define
++//---------------------------------------------------------
++#define MAX_PACKAGE_NUM                          8      // 1 ~ 8
++#define MAX_CHANNEL_NUM                          4      // 1 ~ 32
++
++//---------------------------------------------------------
++// Function
++//---------------------------------------------------------
++#define SENT_RETRY_COUNT                         1
++#define NCSI_RxDESNum                            2048
++
++#define NCSI_Skip_RxCRCData
++//#define NCSI_Skip_Phase1_DeSelectPackage
++#define NCSI_Skip_DeSelectPackage
++//#define NCSI_Skip_DiSChannel
++//#define NCSI_EnableDelay_DeSelectPackage
++//#define NCSI_EnableDelay_GetLinkStatus
++//#define NCSI_EnableDelay_EachPackage
++//#define NCSI_VERBOSE_TEST
++//#define Print_Version_ID
++//#define Print_PackageName
++#define Print_DetailFrame
++
++//---------------------------------------------------------
++// Delay (ms)
++//---------------------------------------------------------
++#define Delay_EachPackage                        1000
++#define Delay_DeSelectPackage                    50
++#define Delay_GetLinkStatus                      50
++
++//---------------------------------------------------------
++// PCI DID/VID & Manufacturer ID
++//---------------------------------------------------------
++#define ManufacturerID_Intel                     0x00000157     //343
++#define ManufacturerID_Broadcom                  0x0000113d     //4413
++#define ManufacturerID_Mellanox                  0x000002c9     //713
++#define ManufacturerID_Mellanox1                 0x00008119     //33049
++#define ManufacturerID_Emulex                    0x0000006c     //108
++
++//PCI VID: [163c]intel
++//PCI VID: [8086]Intel Corporation
++//PCI VID: [8087]Intel
++//PCI VID: [14e4]Broadcom Corporation
++//PCI VID: [15b3]Mellanox
++//PCI VID: [10df]Emulex
++#define PCI_DID_VID_Intel_82574L                 0x10d38086     // IntelR 82574L Gigabit Ethernet Controller
++#define PCI_DID_VID_Intel_82575_10d6             0x10d68086     // 82566 DM-2-gigabyte
++#define PCI_DID_VID_Intel_82575_10a7             0x10a78086     // 82575EB Gigabit Network Connection
++#define PCI_DID_VID_Intel_82575_10a9             0x10a98086     // 82575EB Gigabit Network Connection
++#define PCI_DID_VID_Intel_82576_10c9             0x10c98086     //*82576 Gigabit ET Dual Port Server Adapter
++#define PCI_DID_VID_Intel_82576_10e6             0x10e68086     // 82576 Gigabit Network Connection
++#define PCI_DID_VID_Intel_82576_10e7             0x10e78086     // 82576 Gigabit Network Connection
++#define PCI_DID_VID_Intel_82576_10e8             0x10e88086     // E64750-xxx Intel Gigabit ET Quad Port Server Adapter
++#define PCI_DID_VID_Intel_82576_1518             0x15188086     // 82576NS SerDes Gigabit Network Connectio
++#define PCI_DID_VID_Intel_82576_1526             0x15268086     // Intel Gigabit ET2 Quad Port Server Adapter
++#define PCI_DID_VID_Intel_82576_150a             0x150a8086     // 82576NS Gigabit Ethernet Controller
++#define PCI_DID_VID_Intel_82576_150d             0x150d8086     // 82576 Gigabit Backplane Connection
++#define PCI_DID_VID_Intel_82599_10fb             0x10fb8086     // 10 Gb Ethernet controller
++#define PCI_DID_VID_Intel_82599_1557             0x15578086     // 82599EN
++#define PCI_DID_VID_Intel_I210_1533              0x15338086     //
++#define PCI_DID_VID_Intel_I210_1537              0x15378086     //???
++#define PCI_DID_VID_Intel_I350_1521              0x15218086     //
++#define PCI_DID_VID_Intel_I350_1523              0x15238086     //
++#define PCI_DID_VID_Intel_X540                   0x15288086     //
++#define PCI_DID_VID_Intel_X550                   0x15638086     //
++#define PCI_DID_VID_Intel_Broadwell_DE           0x15ab8086     //PCH
++#define PCI_DID_VID_Intel_X722_37d0              0x37d08086     //
++#define PCI_DID_VID_Broadcom_BCM5718             0x165614e4     //
++#define PCI_DID_VID_Broadcom_BCM5719             0x165714e4     //
++#define PCI_DID_VID_Broadcom_BCM5720             0x165f14e4     //
++#define PCI_DID_VID_Broadcom_BCM5725             0x164314e4     //
++#define PCI_DID_VID_Broadcom_BCM57810S           0x168e14e4     //
++#define PCI_DID_VID_Broadcom_Cumulus             0x16ca14e4     //
++#define PCI_DID_VID_Broadcom_BCM57302            0x16c914e4     //
++#define PCI_DID_VID_Broadcom_BCM957452           0x16f114e4     //
++#define PCI_DID_VID_Mellanox_ConnectX_3_1003     0x100315b3     //*
++#define PCI_DID_VID_Mellanox_ConnectX_3_1007     0x100715b3     //ConnectX-3 Pro
++#define PCI_DID_VID_Mellanox_ConnectX_4          0x101515b3     //*
++#define PCI_DID_VID_Emulex_40G                   0x072010df     //
++
++//---------------------------------------------------------
++// NCSI Parameter
++//---------------------------------------------------------
++//Command and Response Type
++#define CLEAR_INITIAL_STATE                      0x00           //M
++#define SELECT_PACKAGE                           0x01           //M
++#define DESELECT_PACKAGE                         0x02           //M
++#define ENABLE_CHANNEL                           0x03           //M
++#define DISABLE_CHANNEL                          0x04           //M
++#define RESET_CHANNEL                            0x05           //M
++#define ENABLE_CHANNEL_NETWORK_TX                0x06           //M
++#define DISABLE_CHANNEL_NETWORK_TX               0x07           //M
++#define AEN_ENABLE                               0x08
++#define SET_LINK                                 0x09           //M
++#define GET_LINK_STATUS                          0x0A           //M
++#define SET_VLAN_FILTER                          0x0B           //M
++#define ENABLE_VLAN                              0x0C           //M
++#define DISABLE_VLAN                             0x0D           //M
++#define SET_MAC_ADDRESS                          0x0E           //M
++#define ENABLE_BROADCAST_FILTERING               0x10           //M
++#define DISABLE_BROADCAST_FILTERING              0x11           //M
++#define ENABLE_GLOBAL_MULTICAST_FILTERING        0x12
++#define DISABLE_GLOBAL_MULTICAST_FILTERING       0x13
++#define SET_NCSI_FLOW_CONTROL                    0x14
++#define GET_VERSION_ID                           0x15           //M
++#define GET_CAPABILITIES                         0x16           //M
++#define GET_PARAMETERS                           0x17           //M
++#define GET_CONTROLLER_PACKET_STATISTICS         0x18
++#define GET_NCSI_STATISTICS                      0x19
++#define GET_NCSI_PASS_THROUGH_STATISTICS         0x1A
++
++//Standard Response Code
++#define COMMAND_COMPLETED                        0x00
++#define COMMAND_FAILED                           0x01
++#define COMMAND_UNAVAILABLE                      0x02
++#define COMMAND_UNSUPPORTED                      0x03
++
++//Standard Reason Code
++#define NO_ERROR                                 0x0000
++#define INTERFACE_INITIALIZATION_REQUIRED        0x0001
++#define PARAMETER_IS_INVALID                     0x0002
++#define CHANNEL_NOT_READY                        0x0003
++#define PACKAGE_NOT_READY                        0x0004
++#define INVALID_PAYLOAD_LENGTH                   0x0005
++#define UNKNOWN_COMMAND_TYPE                     0x7FFF
++
++//SET_MAC_ADDRESS
++#define UNICAST                                  ( 0x00 << 5 )
++#define MULTICAST                                ( 0x01 << 5 )
++#define DISABLE_MAC_ADDRESS_FILTER               0x00
++#define ENABLE_MAC_ADDRESS_FILTER                0x01
++
++//GET_LINK_STATUS
++#define LINK_DOWN                                0
++#define LINK_UP                                  1
++
++#endif // NCSI_H
+diff -Naur uboot/oem/ami/standalone/nettest/nettest.c uboot_latest/oem/ami/standalone/nettest/nettest.c
+--- uboot/oem/ami/standalone/nettest/nettest.c	2025-08-14 18:17:05.349990030 +0530
++++ uboot_latest/oem/ami/standalone/nettest/nettest.c	2025-08-14 18:18:32.592349092 +0530
+@@ -1,5 +1,5 @@
+ /*
+-(C) Copyright 2020
++(C) Copyright 2025
+  American Megatrends Inc
+ 
+  This program is free software; you can redistribute it and/or
+@@ -18,6 +18,11 @@
+  MA 02111-1307 USA
+ */
+ 
++/*
++ * @author ARJUN C R arjuncr@ami.com
++ * 
++*/
++
+ #include <common.h>
+ #include <exports.h>
+ #include "stdalone.h"
+diff -Naur uboot/oem/ami/standalone/nettest/phy.c uboot_latest/oem/ami/standalone/nettest/phy.c
+--- uboot/oem/ami/standalone/nettest/phy.c	2025-08-14 18:17:05.349934899 +0530
++++ uboot_latest/oem/ami/standalone/nettest/phy.c	2025-08-14 18:18:32.592522156 +0530
+@@ -2116,6 +2116,217 @@
+ }
+ 
+ //------------------------------------------------------------
++void phy_motor_comm(MAC_ENGINE *eng)
++{
++	uint32_t reg;
++
++	// RX internal delay
++	phy_write(eng, 0x1e, 0xA001);
++	reg = phy_read(eng, 0x1f);
++	if (eng->arg.ctrl.b.phy_rx_delay_en)
++		reg |= BIT(8);
++	else
++		reg &= ~BIT(8);
++	phy_write(eng, 0x1F, reg);
++
++	if (eng->phy.loopback) {
++		if (eng->run.speed_sel[0])
++			phy_write(eng, 0, 0X4140);
++		else if (eng->run.speed_sel[1])
++			phy_write(eng, 0, 0x6100);
++		else
++			phy_write(eng, 0, 0x4100);
++	} else {
++		// Disable sleep bode
++		phy_write(eng, 0x1e, 0x27);
++		reg = phy_read(eng, 0x1f) | BIT(15);
++		phy_write(eng, 0x1F, reg);
++		// Enable External loopback
++		phy_write(eng, 0x1e, 0x0A);
++		reg = phy_read(eng, 0x1f) | BIT(4);
++		phy_write(eng, 0x1F, reg);
++
++		if (eng->run.speed_sel[0])
++			phy_write(eng, 0, 0x8140);
++		else if (eng->run.speed_sel[1])
++			phy_write(eng, 0, 0xA100);
++		else
++			phy_write(eng, 0, 0x8100);
++	}
++	DELAY(200);
++}
++
++void recov_phy_motor_comm(MAC_ENGINE *eng)
++{
++	uint32_t reg;
++
++	// Disable sleep bode
++	phy_write(eng, 0x1e, 0x27);
++	reg = phy_read(eng, 0x1f) | BIT(15);
++	phy_write(eng, 0x1F, reg);
++	// Disable External loopback
++	phy_write(eng, 0x1e, 0x0A);
++	reg = phy_read(eng, 0x1f) & ~BIT(4);
++	phy_write(eng, 0x1F, reg);
++
++	DELAY(200);
++}
++
++//------------------------------------------------------------
++uint32_t read_ti(MAC_ENGINE *eng, uint32_t offset)
++{
++	phy_write(eng, 0xd, 0x1f);
++	phy_write(eng, 0xe, offset);
++	phy_write(eng, 0xd, 0x401f);
++	return phy_read(eng, 0xe);
++}
++
++void write_ti(MAC_ENGINE *eng, uint32_t offset, uint16_t data)
++{
++	phy_write(eng, 0xd, 0x1f);
++	phy_write(eng, 0xe, offset);
++	phy_write(eng, 0xd, 0x401f);
++	phy_write(eng, 0xe, data);
++}
++
++void phy_ti(MAC_ENGINE *eng)
++{
++	uint32_t reg;
++
++	if (eng->run.speed_sel[0])
++		phy_write(eng, 0, 0x0140);
++	else if (eng->run.speed_sel[1])
++		phy_write(eng, 0, 0x2100);
++	else
++		phy_write(eng, 0, 0x0100);
++
++	reg = phy_read(eng, 0x16) & ~GENMASK(5, 0);
++	if (eng->phy.loopback) {
++		/* Digital loopback */
++		reg |= BIT(2);
++		phy_write(eng, 0x16, reg);
++	} else {
++		phy_write(eng, 0x16, reg);
++	}
++
++	DELAY(500);
++}
++
++void phy_ti_dp83867(MAC_ENGINE *eng)
++{
++	uint32_t reg, reg_delay;
++
++	// TX/RX internal delay
++	reg = read_ti(eng, 0x32);
++	reg_delay = read_ti(eng, 0x86) & ~GENMASK(7, 0);
++	if (eng->arg.ctrl.b.phy_rx_delay_en) {
++		reg |= BIT(0);
++		// 2ns
++		reg_delay |= 0x7;
++	} else {
++		reg &= ~BIT(0);
++		// 0ns
++		reg_delay |= 0xF;
++	}
++	if (eng->arg.ctrl.b.phy_tx_delay_en) {
++		reg |= BIT(1);
++		reg_delay |= (0x7 << 4);
++	} else {
++		reg &= ~BIT(1);
++		reg_delay |= (0xF << 4);
++	}
++	write_ti(eng, 0x32, reg);
++	write_ti(eng, 0x86, reg_delay);
++
++	phy_ti(eng);
++}
++
++void phy_ti_dp83869(MAC_ENGINE *eng)
++{
++	uint32_t reg, reg_delay;
++
++	// TX/RX internal delay
++	reg = read_ti(eng, 0x32);
++	reg_delay = read_ti(eng, 0x86) & ~GENMASK(7, 0);
++	if (eng->arg.ctrl.b.phy_rx_delay_en) {
++		reg &= ~BIT(0);
++		reg_delay |= 0x7;
++	} else {
++		reg |= BIT(0);
++		reg_delay |= 0xF;
++	}
++	if (eng->arg.ctrl.b.phy_tx_delay_en) {
++		reg &= ~BIT(1);
++		reg_delay |= (0x7 << 4);
++	} else {
++		reg |= BIT(1);
++		reg_delay |= (0xF << 4);
++	}
++	write_ti(eng, 0x32, reg);
++	write_ti(eng, 0x86, reg_delay);
++
++	phy_ti(eng);
++}
++
++void recov_phy_ti(MAC_ENGINE *eng)
++{
++	uint32_t reg;
++
++	reg = phy_read(eng, 0x16) & ~GENMASK(5, 0);
++	phy_write(eng, 0x16, reg);
++}
++
++static void air_buckpbus_reg_write(MAC_ENGINE *eng, uint32_t addr, uint32_t data)
++{
++	phy_write(eng, 0x1F, 4);
++	phy_write(eng, 0x10, 0);
++	phy_write(eng, 0x11, (uint16_t)(addr >> 16));
++	phy_write(eng, 0x12, (uint16_t)(addr & 0xffff));
++	phy_write(eng, 0x13, (uint16_t)(data >> 16));
++	phy_write(eng, 0x14, (uint16_t)(data & 0xffff));
++	phy_write(eng, 0x1F, 0);
++}
++
++#define RGMII_RXDELAY_ALIGN         BIT(4)
++#define RGMII_RXDELAY_FORCE_MODE    BIT(24)
++#define RGMII_TXDELAY_FORCE_MODE    BIT(24)
++
++void phy_air_an8801(MAC_ENGINE *eng)
++{
++	uint32_t reg;
++
++	// TX/RX internal delay
++	reg = RGMII_TXDELAY_FORCE_MODE;
++	if (eng->arg.ctrl.b.phy_tx_delay_en)
++		reg |= 0x4;
++	air_buckpbus_reg_write(eng, 0x1021C024, reg);
++
++	reg = RGMII_RXDELAY_FORCE_MODE;
++	if (eng->arg.ctrl.b.phy_rx_delay_en)
++		reg |= RGMII_RXDELAY_ALIGN;
++	air_buckpbus_reg_write(eng, 0x1021C02C, reg);
++
++	if (eng->phy.loopback) {
++		if (eng->run.speed_sel[0])
++			phy_write(eng, 0, 0x4140);
++		else if (eng->run.speed_sel[1])
++			phy_write(eng, 0, 0x6100);
++		else
++			phy_write(eng, 0, 0x4100);
++	} else {
++		if (eng->run.speed_sel[0]) {
++			phy_write(eng, 0x09, 0x1a00);
++			phy_write(eng, 0x18, 0x1);
++			phy_write(eng, 0, 0x1200);
++		} else if (eng->run.speed_sel[1]) {
++			phy_write(eng, 0, 0x2100);
++		} else {
++			phy_write(eng, 0, 0x0100);
++		}
++	}
++}
++
++//------------------------------------------------------------
+ void phy_default (MAC_ENGINE *eng) 
+ {
+ 	nt_log_func_name();
+@@ -2131,7 +2342,7 @@
+ */
+ uint32_t phy_find_addr(MAC_ENGINE *eng)
+ {
+-	uint32_t value;
++	uint32_t value, value2;
+ 	uint32_t ret = 0;
+ 	int8_t phy_addr_org;
+ 
+@@ -2155,6 +2366,12 @@
+ 	if (ret == 0) {
+ 		for (eng->phy.Adr = 0; eng->phy.Adr < 32; eng->phy.Adr++) {
+ 			value = phy_read(eng, PHY_REG_ID_1);
++			value2 = phy_read(eng, PHY_REG_ID_2);
++			// YT8521SH ID1 is zero, so need to check ID2
++			if (value == 0 && value2 == 0x11A) {
++				ret = 1;
++				break;
++			}
+ 			if (PHY_IS_VALID(value)) {
+ 				ret = 1;
+ 				break;
+diff -Naur uboot/oem/ami/standalone/nettest/phy.h uboot_latest/oem/ami/standalone/nettest/phy.h
+--- uboot/oem/ami/standalone/nettest/phy.h	2025-08-14 18:17:05.350014800 +0530
++++ uboot_latest/oem/ami/standalone/nettest/phy.h	2025-08-14 18:18:32.592578054 +0530
+@@ -6,38 +6,33 @@
+ #ifndef PHY_H
+ #define PHY_H
+ 
+-//
+-// Define
+-//
++#define PHY_IS_VALID(dat) (((dat & 0xffff) != 0xffff))
+ 
+-#define PHY_IS_VALID(dat)                                                      \
+-	(((dat & 0xffff) != 0xffff) && ((dat & 0xffff) != 0x0))
+-
+-// Define PHY basic register
+-#define PHY_REG_BMCR    0x00 // Basic Mode Control Register
+-#define PHY_REG_BMSR    0x01 // Basic Mode Status Register
+-#define PHY_REG_ID_1    0x02
+-#define PHY_REG_ID_2    0x03
+-#define PHY_ANER        0x06 // Auto-negotiation Expansion Register
+-#define PHY_GBCR        0x09 // 1000Base-T Control Register
+-#define PHY_SR          0x11 // PHY Specific Status Register
+-#define PHY_INER        0x12 // Interrupt Enable Register
+-
+-#define PHYID3_Mask                0xfc00         //0xffc0
+-
+-/* --- Note for SettingPHY chip ---
+-void phy_xxxx (int loop_phy) {
+-
+-	if ( BurstEnable ) {
+-        // IEEE test
+-	}
+-	else if (loop_phy) {
+-        // Internal loop back
+-	}
+-	else {
+-        // external loop back
+-	}
+-}
+------------------------------------ */
++#define PHY_REG_BMCR 0x00 // Basic Mode Control Register
++#define PHY_REG_BMSR 0x01 // Basic Mode Status Register
++#define PHY_REG_ID_1 0x02
++#define PHY_REG_ID_2 0x03
++#define PHY_ANER 0x06 // Auto-negotiation Expansion Register
++#define PHY_GBCR 0x09 // 1000Base-T Control Register
++#define PHY_SR 0x11 // PHY Specific Status Register
++#define PHY_INER 0x12 // Interrupt Enable Register
++
++#define PHYID3_Mask 0xfc00 //0xffc0
++
++/* Note for SettingPHY chip
++ *
++ * void phy_xxxx (int loop_phy) {
++ *
++ *	if ( BurstEnable ) {
++ *		// IEEE test
++ *	}
++ *	else if (loop_phy) {
++ *		// Internal loop back
++ *	}
++ *	else {
++ *		// external loop back
++ *	}
++ * }
++ */
+ 
+ #endif // PHY_H
+diff -Naur uboot/oem/ami/standalone/nettest/phy_tbl.h uboot_latest/oem/ami/standalone/nettest/phy_tbl.h
+--- uboot/oem/ami/standalone/nettest/phy_tbl.h	2025-08-14 18:17:05.350061594 +0530
++++ uboot_latest/oem/ami/standalone/nettest/phy_tbl.h	2025-08-14 18:18:32.592601460 +0530
+@@ -35,6 +35,12 @@
+ void phy_vitesse(MAC_ENGINE *eng);
+ void recov_phy_atheros(MAC_ENGINE *eng);
+ void phy_atheros(MAC_ENGINE *eng);
++void phy_motor_comm(MAC_ENGINE *eng);
++void recov_phy_motor_comm(MAC_ENGINE *eng);
++void phy_ti_dp83867(MAC_ENGINE *eng);
++void phy_ti_dp83869(MAC_ENGINE *eng);
++void recov_phy_ti(MAC_ENGINE *eng);
++void phy_air_an8801(MAC_ENGINE *eng);
+ void phy_default(MAC_ENGINE *eng);
+ 
+ struct phy_desc {
+@@ -45,7 +51,7 @@
+ 	PHY_ENGINE cfg;
+ };
+ 
+-#define PHY_LOOKUP_N 35
++#define PHY_LOOKUP_N 41
+ static const struct phy_desc phy_lookup_tbl[PHY_LOOKUP_N] = {
+ 	{ .id1 = 0x001c,
+ 	  .id2 = 0xc916,
+@@ -185,6 +191,12 @@
+ 	  .name = "88E6320(IntLoop)",
+ 	  .cfg.fp_set = phy_marvell1,
+ 	  .cfg.fp_clr = recov_phy_marvell1 },
++	{ .id1 = 0xff00,
++	  .id2 = 0x3102,
++	  .id2_mask = 0xffff,
++	  .name = "88E6321(IntLoop)",
++	  .cfg.fp_set = phy_marvell1,
++	  .cfg.fp_clr = recov_phy_marvell1 },
+ 	{ .id1 = 0x0141,
+ 	  .id2 = 0x0e90,
+ 	  .id2_mask = 0xfff0,
+@@ -251,6 +263,36 @@
+ 	  .name = "VSC8641",
+ 	  .cfg.fp_set = phy_vitesse,
+ 	  .cfg.fp_clr = recov_phy_vitesse },
++	{ .id1 = 0,
++	  .id2 = 0x011A,
++	  .id2_mask = 0xFFFF,
++	  .name = "YT8521SH",
++	  .cfg.fp_set = phy_motor_comm,
++	  .cfg.fp_clr = recov_phy_motor_comm },
++	{ .id1 = 0x4f51,
++	  .id2 = 0xE91A,
++	  .id2_mask = 0xFFF0,
++	  .name = "YT8531SH",
++	  .cfg.fp_set = phy_motor_comm,
++	  .cfg.fp_clr = recov_phy_motor_comm },
++	{ .id1 = 0x2000,
++	  .id2 = 0xa0f1,
++	  .id2_mask = 0xFFF0,
++	  .name = "TI DP83869",
++	  .cfg.fp_set = phy_ti_dp83869,
++	  .cfg.fp_clr = recov_phy_ti },
++	{ .id1 = 0x2000,
++	  .id2 = 0xa231,
++	  .id2_mask = 0xFFF0,
++	  .name = "TI DP83867",
++	  .cfg.fp_set = phy_ti_dp83867,
++	  .cfg.fp_clr = recov_phy_ti },
++	{ .id1 = 0xC0FF,
++	  .id2 = 0x0421,
++	  .id2_mask = 0xFFF0,
++	  .name = "Airoha AN8801R",
++	  .cfg.fp_set = phy_air_an8801,
++	  .cfg.fp_clr = NULL },
+ 	{ .id1 = 0x0000,
+ 	  .id2 = 0x0000,
+ 	  .id2_mask = 0x0000,
+diff -Naur uboot/oem/ami/standalone/nettest/stdalone.c uboot_latest/oem/ami/standalone/nettest/stdalone.c
+--- uboot/oem/ami/standalone/nettest/stdalone.c	2025-08-14 18:17:05.350091994 +0530
++++ uboot_latest/oem/ami/standalone/nettest/stdalone.c	2025-08-14 18:18:32.592724193 +0530
+@@ -1,5 +1,5 @@
+ /*
+-(C) Copyright 2020
++(C) Copyright 2025
+  American Megatrends Inc
+ 
+  This program is free software; you can redistribute it and/or
+@@ -18,6 +18,11 @@
+  MA 02111-1307 USA
+ */
+ 
++/*
++ * @author ARJUN C R arjuncr@ami.com
++ *
++*/
++
+ #include "stdalone.h"
+ #include "comminf.h"
+ 
+@@ -30,34 +35,34 @@
+ 		{"dramtest", s_do_dramtest},
+ };
+ 
+-extern int main_function(int argc, char * const argv[], char mode);
+-extern int dram_stress_function(int argc, char * const argv[]);
++extern int mac_test(int argc, char * const argv[], char mode);
++extern int do_ast_dramtest(int argc, char *const argv[]);
+ 
+ int s_do_mactest(int argc, char * const argv[])
+ {
+ 	display_lantest_log_msg = 0;
+-	return main_function( argc, argv, MODE_DEDICATED );
++	return mac_test( argc, argv, MODE_DEDICATED );
+ }
+ 
+ int s_do_mactestd(int argc, char * const argv[])
+ {
+ 	display_lantest_log_msg = 1;
+-	return main_function( argc, argv, MODE_DEDICATED );
++	return mac_test( argc, argv, MODE_DEDICATED );
+ }
+ 
+ int s_do_ncsitest(int argc, char * const argv[])
+ {
+ 	display_lantest_log_msg = 0;
+-	return main_function( argc, argv, MODE_NCSI );
++	return mac_test( argc, argv, MODE_NCSI );
+ }
+ 
+ int s_do_ncsitestd(int argc, char * const argv[])
+ {
+ 	display_lantest_log_msg = 1;
+-	return main_function( argc, argv, MODE_NCSI );
++	return mac_test( argc, argv, MODE_NCSI );
+ }
+ 
+ int s_do_dramtest (int argc, char * const argv[])
+ {
+-	return dram_stress_function( argc, argv);
++	return do_ast_dramtest( argc, argv);
+ }
+diff -Naur uboot/oem/ami/standalone/nettest/stress.c uboot_latest/oem/ami/standalone/nettest/stress.c
+--- uboot/oem/ami/standalone/nettest/stress.c	2025-08-14 18:17:05.350037390 +0530
++++ uboot_latest/oem/ami/standalone/nettest/stress.c	1970-01-01 05:30:00.000000000 +0530
+@@ -1,210 +0,0 @@
+-/*
+- *  This program is distributed in the hope that it will be useful,
+- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+- *  GNU General Public License for more details.
+- *
+- *  You should have received a copy of the GNU General Public License
+- *  along with this program; if not, write to the Free Software
+- *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+- */
+-
+-#include <common.h>
+-#include <console.h>
+-#include <bootretry.h>
+-#include <cli.h>
+-#include <command.h>
+-#include <console.h>
+-
+-#include <inttypes.h>
+-#include <mapmem.h>
+-#include <asm/io.h>
+-#include <linux/compiler.h>
+-
+-DECLARE_GLOBAL_DATA_PTR;
+-
+-#define DRAM_BASE	0x80000000
+-#define TIMEOUT_DRAM	5000000
+-
+-#ifdef CONFIG_ASPEED_AST2600
+-#define BLK_SIZE_MB				64
+-#define N_BLK					32
+-#define MCR74_BLK_OFFSET		26
+-#define MCR74_LEN_OFFSET		4
+-#define MCR74_BLK_LEN_MASK		GENMASK(30, 4)
+-#else
+-#define BLK_SIZE_MB				16
+-#define N_BLK					64
+-#define MCR74_BLK_OFFSET		24
+-#define MCR74_LEN_OFFSET		4
+-#define MCR74_BLK_LEN_MASK		GENMASK(29, 4)
+-#endif
+-#define BLK_SIZE				(BLK_SIZE_MB * 1024 * 1024)
+-#define N_16B_IN_BLK			(BLK_SIZE / 16)
+-
+-/* ------------------------------------------------------------------------- */
+-int MMCTestBurst(unsigned int datagen)
+-{
+-	unsigned int data = 0;
+-	unsigned int timeout = 0;
+-
+-	writel(0x00000000, 0x1E6E0070);
+-	writel((0x000000C1 | (datagen << 3)), 0x1E6E0070);
+-
+-	do {
+-		data = readl(0x1E6E0070) & 0x3000;
+-
+-		if( data & 0x2000 ){
+-			return(0);
+-		}
+-
+-		if( ++timeout > TIMEOUT_DRAM ) {
+-			printf("Timeout!!\n");
+-			writel(0x00000000, 0x1E6E0070);
+-			return(0);
+-		} 
+-	} while (!data);
+-
+-	writel(0x00000000, 0x1E6E0070);
+-
+-	return(1);
+-}
+-
+-/* ------------------------------------------------------------------------- */
+-int MMCTestSingle(unsigned int datagen)
+-{
+-	unsigned int data = 0;
+-	unsigned int timeout = 0;
+-
+-	writel(0x00000000, 0x1E6E0070);
+-	writel((0x00000085 | (datagen << 3)), 0x1E6E0070);
+-
+-	do {
+-		data = readl(0x1E6E0070) & 0x3000;
+-
+-		if( data & 0x2000 ){
+-			return(0);
+-		}
+-
+-		if( ++timeout > TIMEOUT_DRAM ){
+-			printf("Timeout!!\n");
+-			writel(0x00000000, 0x1E6E0070);
+-
+-			return(0);
+-		}
+-	} while ( !data );
+-
+-	writel(0x00000000, 0x1E6E0070);
+-
+-	return(1);
+-}
+-
+-/* ------------------------------------------------------------------------- */
+-int MMCTest(void)
+-{
+-	unsigned int pattern;
+-
+-	pattern = rand();
+-	writel(pattern, 0x1E6E007C);
+-	printf("Pattern = %08X : ",pattern);
+-  
+-
+-	if(!MMCTestBurst(0))    return(0);
+-	if(!MMCTestBurst(1))    return(0);
+-	if(!MMCTestBurst(2))    return(0);
+-	if(!MMCTestBurst(3))    return(0);
+-	if(!MMCTestBurst(4))    return(0);
+-	if(!MMCTestBurst(5))    return(0);
+-	if(!MMCTestBurst(6))    return(0);
+-	if(!MMCTestBurst(7))    return(0);
+-	if(!MMCTestSingle(0))   return(0);
+-	if(!MMCTestSingle(1))   return(0);
+-	if(!MMCTestSingle(2))   return(0);
+-	if(!MMCTestSingle(3))   return(0);
+-	if(!MMCTestSingle(4))   return(0);
+-	if(!MMCTestSingle(5))   return(0);
+-	if(!MMCTestSingle(6))   return(0);
+-	if(!MMCTestSingle(7))   return(0);
+-
+-	return(1);
+-}
+-
+-/* ------------------------------------------------------------------------- */
+-static void print_usage(void)
+-{
+-	printf("\nASPEED DRAM BIST\n\n");
+-	printf("Usage: dramtest <count> <block> <length>\n\n");
+-	printf("count:  how many iterations to run (mandatory, in decimal)\n");
+-	printf("        0: infinite loop.\n");
+-	printf("block:  index of the address block to test "
+-			"(optional, in decimal, default: 0)\n");
+-	printf("        0: [%08x, %08x)\n", DRAM_BASE + BLK_SIZE * 0, DRAM_BASE + BLK_SIZE * 1);
+-	printf("        1: [%08x, %08x)\n", DRAM_BASE + BLK_SIZE * 1, DRAM_BASE + BLK_SIZE * 2);
+-	printf("        2: [%08x, %08x)\n", DRAM_BASE + BLK_SIZE * 2, DRAM_BASE + BLK_SIZE * 3);
+-	printf("        n: [80000000 + n*%dMB, 80000000 + (n+1)*%dMB)\n", BLK_SIZE_MB, BLK_SIZE_MB);
+-	printf("           where n = [0, %d]\n", N_BLK - 1);
+-	printf("length: size to test (optional, in hex, default: 0x10000)\n");
+-	printf("        0x0: test the whole memory block %dMB\n", BLK_SIZE_MB);
+-	printf("        0x1: test the first 16 Bytes of the memory block\n");
+-	printf("        0x2: test the first 2*16 Bytes of the memory block\n");
+-	printf("        n  : test the first n*16 Bytes of the memory block\n");
+-	printf("             where n = [0x00000001, 0x%08x]\n", N_16B_IN_BLK - 1);
+-	printf("\n\n");
+-}
+-int dram_stress_function(int argc, char * const argv[], char mode)
+-{
+-	u32 PassCnt = 0;
+-	unsigned long Testcounter = 0;
+-	unsigned long block = 0;
+-	unsigned long length = 0x10000;
+-	int ret;
+-
+-	if (argc < 2) {
+-		ret = 0;
+-		goto cmd_err;
+-	}
+-
+-	ret = CMD_RET_USAGE;
+-	switch (argc) {
+-	case 4:
+-		if (strict_strtoul(argv[3], 16, &length) < 0)
+-			goto cmd_err;
+-	case 3:
+-		if (strict_strtoul(argv[2], 10, &block) < 0)
+-			goto cmd_err;
+-	case 2:
+-		if (strict_strtoul(argv[1], 10, &Testcounter) < 0)
+-			goto cmd_err;
+-		break;
+-	}
+-
+-	printf("Test range: 0x%08lx - 0x%08lx\n", DRAM_BASE + (block << MCR74_BLK_OFFSET),
+-	       DRAM_BASE + (block << MCR74_BLK_OFFSET) + (length << 4) + 15);
+-
+-	ret = 1;
+-	writel(0xFC600309, 0x1E6E0000);
+-	while ((Testcounter > PassCnt) || (Testcounter == 0)) {
+-		clrsetbits_le32(0x1E6E0074, MCR74_BLK_LEN_MASK,
+-				(block << MCR74_BLK_OFFSET) | (length << MCR74_LEN_OFFSET));
+-
+-		if (!MMCTest()) {
+-			printf("FAIL %d/%ld (fail DQ 0x%08x)\n", PassCnt,
+-			       Testcounter, readl(0x1E6E0078));
+-			ret = 0;
+-			break;
+-		} else {
+-			PassCnt++;
+-			printf("Pass %d/%ld\n", PassCnt, Testcounter);
+-		}
+-
+-		if (ctrlc())
+-			break;
+-	}
+-
+-	return (ret);
+-
+-cmd_err:	
+-	print_usage();
+-	return (ret);
+-}
+-
+diff -Naur uboot/oem/ami/standalone/nettest/stubs.c uboot_latest/oem/ami/standalone/nettest/stubs.c
+--- uboot/oem/ami/standalone/nettest/stubs.c	2025-08-14 18:17:05.350208427 +0530
++++ uboot_latest/oem/ami/standalone/nettest/stubs.c	2025-08-14 18:18:32.592772223 +0530
+@@ -1,14 +1,3 @@
+-/*
+- *  This program is distributed in the hope that it will be useful,
+- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+- *  GNU General Public License for more details.
+- *
+- *  You should have received a copy of the GNU General Public License
+- *  along with this program; if not, write to the Free Software
+- *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+- */
+-
+ #include <common.h>
+ #include <exports.h>
+ #include <linux/compiler.h>
+@@ -27,54 +16,53 @@
+ gd_t *global_data;
+ 
+ #define EXPORT_FUNC(f, a, x, ...) \
+-		asm volatile (			\
+-				"	.globl " #x "\n"		\
+-				#x ":\n"				\
+-				"	movl	%0, %%eax\n"		\
+-				"	movl	jt, %%ecx\n"		\
+-				"	jmp	*(%%ecx, %%eax)\n"	\
+-				: : "i"(FO(x)) : "eax", "ecx");
++	asm volatile (			\
++"	.globl " #x "\n"		\
++#x ":\n"				\
++"	movl	%0, %%eax\n"		\
++"	movl	jt, %%ecx\n"		\
++"	jmp	*(%%ecx, %%eax)\n"	\
++	: : "i"(FO(x)) : "eax", "ecx");
+ #elif defined(CONFIG_PPC)
+ /*
+  * r2 holds the pointer to the global_data, r11 is a call-clobbered
+  * register
+  */
+ #define EXPORT_FUNC(f, a, x, ...) \
+-		asm volatile (			\
+-				"	.globl " #x "\n"		\
+-				#x ":\n"				\
+-				"	lwz	%%r11, %0(%%r2)\n"	\
+-				"	lwz	%%r11, %1(%%r11)\n"	\
+-				"	mtctr	%%r11\n"		\
+-				"	bctr\n"				\
+-				: : "i"(offsetof(gd_t, jt)), "i"(FO(x)) : "r11");
++	asm volatile (			\
++"	.globl " #x "\n"		\
++#x ":\n"				\
++"	lwz	%%r11, %0(%%r2)\n"	\
++"	lwz	%%r11, %1(%%r11)\n"	\
++"	mtctr	%%r11\n"		\
++"	bctr\n"				\
++	: : "i"(offsetof(gd_t, jt)), "i"(FO(x)) : "r11");
+ #elif defined(CONFIG_ARM)
+ #ifdef CONFIG_ARM64
+ /*
+  * x18 holds the pointer to the global_data, x9 is a call-clobbered
+  * register
+  */
+-
+ #define EXPORT_FUNC(f, a, x, ...) \
+-		asm volatile (			\
+-				"	.globl " #x "\n"		\
+-				#x ":\n"				\
+-				"	ldr	x9, [x18, %0]\n"		\
+-				"	ldr	x9, [x9, %1]\n"		\
+-				"	br	x9\n"		\
+-				: : "i"(offsetof(gd_t, jt)), "i"(FO(x)) : "x9");
++	asm volatile (			\
++"	.globl " #x "\n"		\
++#x ":\n"				\
++"	ldr	x9, [x18, %0]\n"		\
++"	ldr	x9, [x9, %1]\n"		\
++"	br	x9\n"		\
++	: : "i"(offsetof(gd_t, jt)), "i"(FO(x)) : "x9");
+ #else
+ /*
+  * r9 holds the pointer to the global_data, ip is a call-clobbered
+  * register
+  */
+ #define EXPORT_FUNC(f, a, x, ...) \
+-		asm volatile (			\
+-				"	.globl " #x "\n"		\
+-				#x ":\n"				\
+-				"	ldr	ip, [r9, %0]\n"		\
+-				"	ldr	pc, [ip, %1]\n"		\
+-				: : "i"(offsetof(gd_t, jt)), "i"(FO(x)) : "ip");
++	asm volatile (			\
++"	.globl " #x "\n"		\
++#x ":\n"				\
++"	ldr	ip, [r9, %0]\n"		\
++"	ldr	pc, [ip, %1]\n"		\
++	: : "i"(offsetof(gd_t, jt)), "i"(FO(x)) : "ip");
+ #endif
+ #elif defined(CONFIG_MIPS)
+ #ifdef CONFIG_CPU_MIPS64
+@@ -86,13 +74,13 @@
+  * statement
+  */
+ #define EXPORT_FUNC(f, a, x, ...) \
+-		asm volatile (			\
+-				"	.globl " #x "\n"		\
+-				#x ":\n"				\
+-				"	ld	$25, %0($26)\n"		\
+-				"	ld	$25, %1($25)\n"		\
+-				"	jr	$25\n"			\
+-				: : "i"(offsetof(gd_t, jt)), "i"(FO(x)) : "t9");
++	asm volatile (			\
++"	.globl " #x "\n"		\
++#x ":\n"				\
++"	ld	$25, %0($26)\n"		\
++"	ld	$25, %1($25)\n"		\
++"	jr	$25\n"			\
++        : : "i"(offsetof(gd_t, jt)), "i"(FO(x)) : "t9");
+ #else
+ /*
+  * k0 ($26) holds the pointer to the global_data; t9 ($25) is a call-
+@@ -102,124 +90,124 @@
+  * statement
+  */
+ #define EXPORT_FUNC(f, a, x, ...) \
+-		asm volatile (			\
+-				"	.globl " #x "\n"		\
+-				#x ":\n"				\
+-				"	lw	$25, %0($26)\n"		\
+-				"	lw	$25, %1($25)\n"		\
+-				"	jr	$25\n"			\
+-				: : "i"(offsetof(gd_t, jt)), "i"(FO(x)) : "t9");
++	asm volatile (			\
++"	.globl " #x "\n"		\
++#x ":\n"				\
++"	lw	$25, %0($26)\n"		\
++"	lw	$25, %1($25)\n"		\
++"	jr	$25\n"			\
++	: : "i"(offsetof(gd_t, jt)), "i"(FO(x)) : "t9");
+ #endif
+ #elif defined(CONFIG_NIOS2)
+ /*
+  * gp holds the pointer to the global_data, r8 is call-clobbered
+  */
+ #define EXPORT_FUNC(f, a, x, ...) \
+-		asm volatile (			\
+-				"	.globl " #x "\n"		\
+-				#x ":\n"				\
+-				"	movhi	r8, %%hi(%0)\n"		\
+-				"	ori	r8, r0, %%lo(%0)\n"	\
+-				"	add	r8, r8, gp\n"		\
+-				"	ldw	r8, 0(r8)\n"		\
+-				"	ldw	r8, %1(r8)\n"		\
+-				"	jmp	r8\n"			\
+-				: : "i"(offsetof(gd_t, jt)), "i"(FO(x)) : "gp");
++	asm volatile (			\
++"	.globl " #x "\n"		\
++#x ":\n"				\
++"	movhi	r8, %%hi(%0)\n"		\
++"	ori	r8, r0, %%lo(%0)\n"	\
++"	add	r8, r8, gp\n"		\
++"	ldw	r8, 0(r8)\n"		\
++"	ldw	r8, %1(r8)\n"		\
++"	jmp	r8\n"			\
++	: : "i"(offsetof(gd_t, jt)), "i"(FO(x)) : "gp");
+ #elif defined(CONFIG_M68K)
+ /*
+  * d7 holds the pointer to the global_data, a0 is a call-clobbered
+  * register
+  */
+ #define EXPORT_FUNC(f, a, x, ...) \
+-		asm volatile (			\
+-				"	.globl " #x "\n"		\
+-				#x ":\n"				\
+-				"	move.l	%%d7, %%a0\n"		\
+-				"	adda.l	%0, %%a0\n"		\
+-				"	move.l	(%%a0), %%a0\n"		\
+-				"	adda.l	%1, %%a0\n"		\
+-				"	move.l	(%%a0), %%a0\n"		\
+-				"	jmp	(%%a0)\n"			\
+-				: : "i"(offsetof(gd_t, jt)), "i"(FO(x)) : "a0");
++	asm volatile (			\
++"	.globl " #x "\n"		\
++#x ":\n"				\
++"	move.l	%%d7, %%a0\n"		\
++"	adda.l	%0, %%a0\n"		\
++"	move.l	(%%a0), %%a0\n"		\
++"	adda.l	%1, %%a0\n"		\
++"	move.l	(%%a0), %%a0\n"		\
++"	jmp	(%%a0)\n"			\
++	: : "i"(offsetof(gd_t, jt)), "i"(FO(x)) : "a0");
+ #elif defined(CONFIG_MICROBLAZE)
+ /*
+  * r31 holds the pointer to the global_data. r5 is a call-clobbered.
+  */
+ #define EXPORT_FUNC(f, a, x, ...)				\
+-		asm volatile (				\
+-				"	.globl " #x "\n"			\
+-				#x ":\n"					\
+-				"	lwi	r5, r31, %0\n"			\
+-				"	lwi	r5, r5, %1\n"			\
+-				"	bra	r5\n"				\
+-				: : "i"(offsetof(gd_t, jt)), "i"(FO(x)) : "r5");
++	asm volatile (				\
++"	.globl " #x "\n"			\
++#x ":\n"					\
++"	lwi	r5, r31, %0\n"			\
++"	lwi	r5, r5, %1\n"			\
++"	bra	r5\n"				\
++	: : "i"(offsetof(gd_t, jt)), "i"(FO(x)) : "r5");
+ #elif defined(CONFIG_SH)
+ /*
+  * r13 holds the pointer to the global_data. r1 is a call clobbered.
+  */
+ #define EXPORT_FUNC(f, a, x, ...)					\
+-		asm volatile (					\
+-				"	.align	2\n"			\
+-				"	.globl " #x "\n"		\
+-				#x ":\n"				\
+-				"	mov	r13, r1\n"		\
+-				"	add	%0, r1\n"		\
+-				"	mov.l @r1, r2\n"	\
+-				"	add	%1, r2\n"		\
+-				"	mov.l @r2, r1\n"	\
+-				"	jmp	@r1\n"			\
+-				"	nop\n"				\
+-				"	nop\n"				\
+-				: : "i"(offsetof(gd_t, jt)), "i"(FO(x)) : "r1", "r2");
++	asm volatile (					\
++		"	.align	2\n"			\
++		"	.globl " #x "\n"		\
++		#x ":\n"				\
++		"	mov	r13, r1\n"		\
++		"	add	%0, r1\n"		\
++		"	mov.l @r1, r2\n"	\
++		"	add	%1, r2\n"		\
++		"	mov.l @r2, r1\n"	\
++		"	jmp	@r1\n"			\
++		"	nop\n"				\
++		"	nop\n"				\
++		: : "i"(offsetof(gd_t, jt)), "i"(FO(x)) : "r1", "r2");
+ #elif defined(CONFIG_NDS32)
+ /*
+  * r16 holds the pointer to the global_data. gp is call clobbered.
+  * not support reduced register (16 GPR).
+  */
+ #define EXPORT_FUNC(f, a, x, ...) \
+-		asm volatile (			\
+-				"	.globl " #x "\n"		\
+-				#x ":\n"				\
+-				"	lwi	$r16, [$gp + (%0)]\n"	\
+-				"	lwi	$r16, [$r16 + (%1)]\n"	\
+-				"	jr	$r16\n"			\
+-				: : "i"(offsetof(gd_t, jt)), "i"(FO(x)) : "$r16");
++	asm volatile (			\
++"	.globl " #x "\n"		\
++#x ":\n"				\
++"	lwi	$r16, [$gp + (%0)]\n"	\
++"	lwi	$r16, [$r16 + (%1)]\n"	\
++"	jr	$r16\n"			\
++	: : "i"(offsetof(gd_t, jt)), "i"(FO(x)) : "$r16");
+ #elif defined(CONFIG_RISCV)
+ /*
+  * gp holds the pointer to the global_data. t0 is call clobbered.
+  */
+ #ifdef CONFIG_ARCH_RV64I
+ #define EXPORT_FUNC(f, a, x, ...)	\
+-		asm volatile (			\
+-				"	.globl " #x "\n"		\
+-				#x ":\n"				\
+-				"	ld	t0, %0(gp)\n"		\
+-				"	ld	t0, %1(t0)\n"		\
+-				"	jr	t0\n"			\
+-				: : "i"(offsetof(gd_t, jt)), "i"(FO(x)) : "t0");
++	asm volatile (			\
++"	.globl " #x "\n"		\
++#x ":\n"				\
++"	ld	t0, %0(gp)\n"		\
++"	ld	t0, %1(t0)\n"		\
++"	jr	t0\n"			\
++	: : "i"(offsetof(gd_t, jt)), "i"(FO(x)) : "t0");
+ #else
+ #define EXPORT_FUNC(f, a, x, ...)	\
+-		asm volatile (			\
+-				"	.globl " #x "\n"		\
+-				#x ":\n"				\
+-				"	lw	t0, %0(gp)\n"		\
+-				"	lw	t0, %1(t0)\n"		\
+-				"	jr	t0\n"			\
+-				: : "i"(offsetof(gd_t, jt)), "i"(FO(x)) : "t0");
++	asm volatile (			\
++"	.globl " #x "\n"		\
++#x ":\n"				\
++"	lw	t0, %0(gp)\n"		\
++"	lw	t0, %1(t0)\n"		\
++"	jr	t0\n"			\
++	: : "i"(offsetof(gd_t, jt)), "i"(FO(x)) : "t0");
+ #endif
+ #elif defined(CONFIG_ARC)
+ /*
+  * r25 holds the pointer to the global_data. r10 is call clobbered.
+- */
++  */
+ #define EXPORT_FUNC(f, a, x, ...) \
+-		asm volatile( \
+-				"	.align 4\n" \
+-				"	.globl " #x "\n" \
+-				#x ":\n" \
+-				"	ld	r10, [r25, %0]\n" \
+-				"	ld	r10, [r10, %1]\n" \
+-				"	j	[r10]\n" \
+-				: : "i"(offsetof(gd_t, jt)), "i"(FO(x)) : "r10");
++	asm volatile( \
++"	.align 4\n" \
++"	.globl " #x "\n" \
++#x ":\n" \
++"	ld	r10, [r25, %0]\n" \
++"	ld	r10, [r10, %1]\n" \
++"	j	[r10]\n" \
++	: : "i"(offsetof(gd_t, jt)), "i"(FO(x)) : "r10");
+ #elif defined(CONFIG_XTENSA)
+ /*
+  * Global data ptr is in global_data, jump table ptr is in jt.
+@@ -231,15 +219,15 @@
+ 
+ #if defined(__XTENSA_CALL0_ABI__)
+ #define EXPORT_FUNC(f, a, x, ...)	\
+-		asm volatile (			\
+-				"	.extern jt\n"			\
+-				"	.globl " #x "\n"		\
+-				"	.align 4\n"			\
+-				#x ":\n"				\
+-				"	l32i	a8, %0, 0\n"		\
+-				"	l32i	a8, a8, %1\n"		\
+-				"	jx	a8\n"			\
+-				: : "r"(jt), "i" (FO(x)) : "a8");
++	asm volatile (			\
++"	.extern jt\n"			\
++"	.globl " #x "\n"		\
++"	.align 4\n"			\
++#x ":\n"				\
++"	l32i	a8, %0, 0\n"		\
++"	l32i	a8, a8, %1\n"		\
++"	jx	a8\n"			\
++	: : "r"(jt), "i" (FO(x)) : "a8");
+ #elif defined(__XTENSA_WINDOWED_ABI__)
+ #if XCHAL_HAVE_BE
+ # define SFT "8"
+@@ -247,23 +235,23 @@
+ # define SFT "12"
+ #endif
+ #define EXPORT_FUNC(f, a, x, ...)	\
+-		asm volatile (			\
+-				"	.extern jt\n"			\
+-				"	.globl " #x "\n"		\
+-				"	.align 4\n"			\
+-				#x ":\n"				\
+-				"	entry	sp, 16\n"		\
+-				"	l32i	a8, %0, 0\n"		\
+-				"	l32i	a8, a8, %1\n"		\
+-				"	l32i	a9, a8, 0\n"		\
+-				"	extui	a9, a9, " SFT ", 12\n"	\
+-				"	subx8	a9, a9, sp\n"		\
+-				"	movi	a10, 16\n"		\
+-				"	sub	a9, a10, a9\n"		\
+-				"	movsp	sp, a9\n"		\
+-				"	addi	a8, a8, 3\n"		\
+-				"	jx	a8\n"			\
+-				: : "r"(jt), "i" (FO(x)) : "a8", "a9", "a10");
++	asm volatile (			\
++"	.extern jt\n"			\
++"	.globl " #x "\n"		\
++"	.align 4\n"			\
++#x ":\n"				\
++"	entry	sp, 16\n"		\
++"	l32i	a8, %0, 0\n"		\
++"	l32i	a8, a8, %1\n"		\
++"	l32i	a9, a8, 0\n"		\
++"	extui	a9, a9, " SFT ", 12\n"	\
++"	subx8	a9, a9, sp\n"		\
++"	movi	a10, 16\n"		\
++"	sub	a9, a10, a9\n"		\
++"	movsp	sp, a9\n"		\
++"	addi	a8, a8, 3\n"		\
++"	jx	a8\n"			\
++	: : "r"(jt), "i" (FO(x)) : "a8", "a9", "a10");
+ #else
+ #error Unsupported Xtensa ABI
+ #endif
+diff -Naur uboot/oem/ami/standalone/nettest/swfunc.h uboot_latest/oem/ami/standalone/nettest/swfunc.h
+--- uboot/oem/ami/standalone/nettest/swfunc.h	2025-08-14 18:17:05.350185614 +0530
++++ uboot_latest/oem/ami/standalone/nettest/swfunc.h	2025-08-14 18:18:32.592700861 +0530
+@@ -3,76 +3,76 @@
+  * Copyright (C) ASPEED Technology Inc.
+  */
+ 
+-#ifndef SWFUNC_H
+-#define SWFUNC_H
+-
+-#include <config.h> // for uboot system
+-
+-//---------------------------------------------------------
+-// Program information
+-//---------------------------------------------------------
+-/* PHY in Normal mode */
+-#define VER_NAME "Ver 0.77 version @2017/12/20 1310"
+-
+-/* ========================================================== */
+-#define NETESTCMD_MAX_ARGS CONFIG_SYS_MAXARGS
+-
+-/* == Step 4:==========   Select PHY    ================== */
+-
+-/* ======================== Program flow control ======================== */
+-#define RUN_STEP                                 5
+-// 1: parameter setup
+-// 2: mdc/mdio pinmux,
+-// 4: Data Initial
+-// 5: ALL
+-
+-/* ====================== Switch print debug message ====================== */
+-//#define   DbgPrn_Enable_Debug_pause                //[off]
+-//#define DBG_LOG_FUNC_NAME
+-#define DBG_PRINT_ERR_FLAG		0
+-#define DbgPrn_BufAdr			0
+-#define DbgPrn_Bufdat			0
+-#define DbgPrn_BufdatDetail		0
+-#define DbgPrn_PHYRW			0
+-#define DbgPrn_PHYInit			0
+-#define DbgPrn_DumpMACCnt		0
+-#define DbgPrn_Info			    0
+-#define DbgPrn_FRAME_LEN		0
+-
+-#ifdef DBG_LOG_FUNC_NAME
+-#define nt_log_func_name()				\
+-			do{printf("%s\n", __func__); debug_pause();}while(0)
+-#else
+-#define nt_log_func_name(...)
+-#endif
+-/* ============ Enable or Disable Check item of the descriptor ============ */
+-    #define CheckRxOwn
+-    #define CheckRxLen
+-    #define CheckRxErr
+-    #define CheckCRC
+-    #define CheckFTL
+-    #define CheckRunt
+-//    #define CheckOddNibble
+-    #define CheckRxFIFOFull
+-  
+-
+-//    #define CheckRxbufUNAVA
+-    #define CheckRPktLost
+-//    #define CheckNPTxbufUNAVA
+-    #define CheckTPktLost
+-    #define CheckRxBuf
+-    //#define CHECK_RX_DATA
+-
+-
+-/* error mask of the RX descriptor */
+-#define RXDES_EM_RXERR			BIT(18)
+-#define RXDES_EM_CRC			BIT(19)
+-#define RXDES_EM_FTL			BIT(20)
+-#define RXDES_EM_RUNT			BIT(21)
+-#define RXDES_EM_ODD_NB			BIT(22)
+-#define RXDES_EM_FIFO_FULL		BIT(23)
+-#define RXDES_EM_ALL                                                           \
+-	(RXDES_EM_RXERR | RXDES_EM_CRC | RXDES_EM_FTL | RXDES_EM_RUNT |        \
+-	 RXDES_EM_ODD_NB | RXDES_EM_FIFO_FULL)
+-
+-#endif // SWFUNC_H
++#ifndef SWFUNC_H
++#define SWFUNC_H
++
++#include <config.h> // for uboot system
++
++//---------------------------------------------------------
++// Program information
++//---------------------------------------------------------
++/* PHY in Normal mode */
++#define VER_NAME "Ver 0.77 version @2017/12/20 1310"
++
++/* ========================================================== */
++#define NETESTCMD_MAX_ARGS CONFIG_SYS_MAXARGS
++
++/* == Step 4:==========   Select PHY    ================== */
++
++/* ======================== Program flow control ======================== */
++#define RUN_STEP                                 5
++// 1: parameter setup
++// 2: mdc/mdio pinmux,
++// 4: Data Initial
++// 5: ALL
++
++/* ====================== Switch print debug message ====================== */
++//#define   DbgPrn_Enable_Debug_pause                //[off]
++//#define DBG_LOG_FUNC_NAME
++#define DBG_PRINT_ERR_FLAG		0
++#define DbgPrn_BufAdr			0
++#define DbgPrn_Bufdat			0
++#define DbgPrn_BufdatDetail		0
++#define DbgPrn_PHYRW			0
++#define DbgPrn_PHYInit			0
++#define DbgPrn_DumpMACCnt		0
++#define DbgPrn_Info			    0
++#define DbgPrn_FRAME_LEN		0
++
++#ifdef DBG_LOG_FUNC_NAME
++#define nt_log_func_name()				\
++			do{printf("%s\n", __func__); debug_pause();}while(0)
++#else
++#define nt_log_func_name(...)
++#endif
++/* ============ Enable or Disable Check item of the descriptor ============ */
++    #define CheckRxOwn
++    #define CheckRxLen
++    #define CheckRxErr
++    #define CheckCRC
++    #define CheckFTL
++    #define CheckRunt
++//    #define CheckOddNibble
++    #define CheckRxFIFOFull
++  
++
++//    #define CheckRxbufUNAVA
++    #define CheckRPktLost
++//    #define CheckNPTxbufUNAVA
++    #define CheckTPktLost
++    #define CheckRxBuf
++    //#define CHECK_RX_DATA
++
++
++/* error mask of the RX descriptor */
++#define RXDES_EM_RXERR			BIT(18)
++#define RXDES_EM_CRC			BIT(19)
++#define RXDES_EM_FTL			BIT(20)
++#define RXDES_EM_RUNT			BIT(21)
++#define RXDES_EM_ODD_NB			BIT(22)
++#define RXDES_EM_FIFO_FULL		BIT(23)
++#define RXDES_EM_ALL                                                           \
++	(RXDES_EM_RXERR | RXDES_EM_CRC | RXDES_EM_FTL | RXDES_EM_RUNT |        \
++	 RXDES_EM_ODD_NB | RXDES_EM_FIFO_FULL)
++
++#endif // SWFUNC_H

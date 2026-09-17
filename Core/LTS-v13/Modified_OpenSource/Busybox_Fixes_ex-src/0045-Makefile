@@ -1,0 +1,50 @@
+diff --git a/Makefile.flags b/Makefile.flags
+index a614b3c..568d888 100644
+--- a/Makefile.flags
++++ b/Makefile.flags
+@@ -17,12 +17,14 @@ ifneq ($(MULTI_ARCH_LIB), .)
+ LDFLAGS += -L$(IMAGE_TREE)/lib/$(MULTI_ARCH_LIB) -L$(IMAGE_TREE)/usr/lib/$(MULTI_ARCH_LIB)
+ EXTRA_LDFLAGS += -Wl,-L$(IMAGE_TREE)/lib/$(MULTI_ARCH_LIB) -Wl,-L$(IMAGE_TREE)/usr/lib/$(MULTI_ARCH_LIB)
+ EXTRA_LDFLAGS += -Wl,-rpath-link=$(IMAGE_TREE)/lib/$(MULTI_ARCH_LIB) -Wl,-rpath-link=$(IMAGE_TREE)/usr/lib/$(MULTI_ARCH_LIB)
+-EXTRA_LDFLAGS += -Wl,-rpath=/lib/$(MULTI_ARCH_LIB) -Wl,-rpath=/usr/lib/$(MULTI_ARCH_LIB)
++# Removed -Wl,-rpath= to avoid RPATH in final binary (BDBA security fix)
++#EXTRA_LDFLAGS += -Wl,-rpath=/lib/$(MULTI_ARCH_LIB) -Wl,-rpath=/usr/lib/$(MULTI_ARCH_LIB)
+ else
+ LDFLAGS += -L$(IMAGE_TREE)/lib -L$(IMAGE_TREE)/usr/lib
+ EXTRA_LDFLAGS += -Wl,-L$(IMAGE_TREE)/lib Wl,-L$(IMAGE_TREE)/usr/lib
+ EXTRA_LDFLAGS += -Wl,-rpath-link=$(IMAGE_TREE)/lib Wl,-rpath-link=$(IMAGE_TREE)/usr/lib
+-EXTRA_LDFLAGS += -Wl,-rpath=/lib Wl,-rpath=/usr/lib
++# Removed -Wl,-rpath= to avoid RPATH in final binary (BDBA security fix)
++#EXTRA_LDFLAGS += -Wl,-rpath=/lib Wl,-rpath=/usr/lib
+ endif
+ 
+ # -std=gnu99 needed for [U]LLONG_MAX on some systems
+@@ -77,6 +79,11 @@ CFLAGS += $(call cc-option,-falign-functions=1 -falign-jumps=1 -falign-labels=1
+ CFLAGS += $(call cc-option,-fno-unwind-tables,)
+ CFLAGS += $(call cc-option,-fno-asynchronous-unwind-tables,)
+ 
++# BDBA security fixes
++CFLAGS += -D_FORTIFY_SOURCE=2
++CFLAGS += $(call cc-option,-fstack-protector-all,)
++LDFLAGS += -Wl,-z,now
++
+ # FIXME: These warnings are at least partially to be concerned about and should
+ # be fixed..
+ #CFLAGS += $(call cc-option,-Wconversion,)
+@@ -118,10 +125,9 @@ CFLAGS_busybox += -static
+ PKG_CONFIG_FLAGS += --static
+ endif
+ 
+-ifeq ($(CONFIG_PIE),y)
+-CFLAGS_busybox += $(ARCH_PIE)
+-CFLAGS += $(ARCH_FPIE)
+-endif
++# Always enable PIE (BDBA security fix)
++CFLAGS += -fPIE
++LDFLAGS += -pie
+ 
+ ifneq ($(CONFIG_EXTRA_CFLAGS),)
+ CFLAGS += $(strip $(subst ",,$(CONFIG_EXTRA_CFLAGS)))
+-- 
+2.53.0
+

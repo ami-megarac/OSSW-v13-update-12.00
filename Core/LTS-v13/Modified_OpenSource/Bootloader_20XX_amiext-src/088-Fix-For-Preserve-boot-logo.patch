@@ -1,0 +1,95 @@
+diff -Naur uboot/include/configs/aspeed-common.h uboot_new/include/configs/aspeed-common.h
+--- uboot/include/configs/aspeed-common.h	2025-08-29 21:05:47.227038258 +0530
++++ uboot_new/include/configs/aspeed-common.h	2025-08-29 21:05:47.684362910 +0530
+@@ -85,6 +85,7 @@
+         "do_memtest=" __stringify(CONFIG_MEMTEST_ENABLE)        "\0" \
+         "bootselector=1\0" \
+         "recentlyprogfw=1\0" \
++	"bootlogo_idx=0xff\0" \
+ 	"sdbootselector=" __stringify(CONFIG_SD_BOOT_SELECTOR) "\0" \
+         ""
+ #else
+@@ -95,6 +96,7 @@
+ 	"do_memtest=" __stringify(CONFIG_MEMTEST_ENABLE)        "\0" \
+ 	"bootselector=1\0" \
+ 	"recentlyprogfw=1\0" \
++	"bootlogo_idx=0xff\0" \
+ 	""
+ #endif
+ /* Environment */
+diff -Naur uboot/oem/ami/bootlogo/cmd_bootlogo.c uboot_new/oem/ami/bootlogo/cmd_bootlogo.c
+--- uboot/oem/ami/bootlogo/cmd_bootlogo.c	2025-08-29 21:05:46.932844087 +0530
++++ uboot_new/oem/ami/bootlogo/cmd_bootlogo.c	2025-08-29 21:05:47.378029679 +0530
+@@ -4,6 +4,7 @@
+ # include <flash.h>
+ # include <malloc.h>
+ # include <linux/string.h>
++# include <environment.h>
+ # include "bootlogo.h"
+ 
+ #define ACTION_ADDR	"addr"
+@@ -16,8 +17,9 @@
+ 	struct color_t *clut_ptr = NULL;
+ 	unsigned char *logo_data_ptr = NULL;
+ 	unsigned int fb_addr = 0;
+-	int i;
++	int i=0;
+ 	struct color_t clut;
++	char idx_str[12]={0};
+ 
+ 	if(logo_bin_addr == 0)
+ 	{
+@@ -90,6 +92,10 @@
+ 		*( (unsigned int *) (fb_addr + (i << 2)) ) = (clut.alpha << 24) | (clut.red << 16) | (clut.green << 8) | (clut.blue << 0);
+ 	}
+ 
++	snprintf(idx_str, sizeof(idx_str), "%d", idx);
++	env_set("bootlogo_idx", idx_str);
++	env_save();
++
+ 	return 0;
+ }
+ 
+diff -Naur uboot/oem/ami/fmh/cmd_fmh.c uboot_new/oem/ami/fmh/cmd_fmh.c
+--- uboot/oem/ami/fmh/cmd_fmh.c	2025-08-29 21:05:46.932332658 +0530
++++ uboot_new/oem/ami/fmh/cmd_fmh.c	2025-08-31 13:45:10.163226970 +0530
+@@ -1422,6 +1422,8 @@
+ #endif
+ #ifdef CONFIG_BOOTLOGO_SUPPORT
+ 	char bootlogo_addr[20] = {0};
++	char *bt_index = NULL;
++	char bootlogo_index[20] = {0};
+ #endif
+ 
+ #if defined (CONFIG_CMD_EXT4) && defined (CONFIG_CMD_MMC) && (defined (CONFIG_SPX_FEATURE_MMC_BOOT)|| defined (CONFIG_SPX_FEATURE_HW_EMMC_BOOT))
+@@ -1627,6 +1629,22 @@
+ 			ShowBootLogoByAddress( le32_to_host(mod->Module_Load_Address), 0);
+ 			#endif 
+ 			sprintf(bootlogo_addr," bootlogo=%x", le32_to_host(mod->Module_Location));
++			bt_index = env_get("bootlogo_idx");
++			if(bt_index !=NULL)
++			{
++				sprintf(bootlogo_index," bt_idx=%s", bt_index);
++				if(strcmp(bt_index,"0xff") != 0)
++				{
++					env_set("bootlogo_idx","0xff");
++					env_save();
++				}
++			}
++			else
++			{
++				sprintf(bootlogo_index," bt_idx=%x", 0xff);
++				env_set("bootlogo_idx","0xff");
++                        	env_save();
++			}
+ 		}
+ #endif
+ 
+@@ -1926,6 +1944,7 @@
+ #endif
+ #ifdef CONFIG_BOOTLOGO_SUPPORT
+ 		strcat(bootargs,bootlogo_addr);
++		strcat(bootargs,bootlogo_index);
+ #endif
+ 		sprintf(imagebooted," imagebooted=%d",imagetoboot);
+ 		strcat(bootargs,imagebooted);		

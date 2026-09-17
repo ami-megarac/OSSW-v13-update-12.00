@@ -1,0 +1,367 @@
+From 19229f216c398e1a3d9204db79f82e5865b932c5 Mon Sep 17 00:00:00 2001
+From: saikumaru <saikumaru@ami.com>
+Date: Tue, 12 Aug 2025 17:32:52 +0530
+Subject: [PATCH] SDKv907 fix migration for SPI
+
+The fixes migrated from following commits,
+1. spi_nor: aspeed: Update SPI driver
+	https://github.com/AspeedTech-BMC/u-boot/commit/8fbbfa7da018ef43cad1b1392f5720cb66f6e0ee
+2. spi-nor: Add s25hl02gt flash part
+	https://github.com/AspeedTech-BMC/u-boot/commit/c6e688e425109b967f7755561401789ec7d5e808
+3. mtd: spi-nor: PY25Q512HB and PY25Q01GHB flash part support
+	https://github.com/AspeedTech-BMC/u-boot/commit/ade4f11861ad9f5211cb4bfa2135dbc10771ae04
+4. spi-nor: Add XTX flash parts support
+	https://github.com/AspeedTech-BMC/u-boot/commit/83ae8feeaeecbc9e78c6325e57c1155a544c64c5
+5. mtd: spi-nor: Add XMC flash parts
+	https://github.com/AspeedTech-BMC/u-boot/commit/898398d2c7d9bd7cf74d8cea66055ab644681914
+6. mtd: spi_nor: Add customized read function for w25q02gjv flash
+	https://github.com/AspeedTech-BMC/u-boot/commit/2ca4c088ed52dde59a538d7df9da74f35078e08c
+7. spi-nor: Remove dual mode for GDxxBxxGE flash part
+	https://github.com/AspeedTech-BMC/u-boot/commit/080c98023f2b3f26c7aa9eb84daf26714c4b5299
+8. mtd: spi: Add support for W25Q01JVSFIN
+	https://github.com/AspeedTech-BMC/u-boot/commit/dd4d7f8298752e704792f376d4e671e656ad41bf
+9. mtd: spi-nor: PY25Q512HB and PY25Q01GHB flash part support
+	https://github.com/AspeedTech-BMC/u-boot/commit/ade4f11861ad9f5211cb4bfa2135dbc10771ae04
+
+Signed-off-by: saikumaru <saikumaru@ami.com>
+---
+ drivers/mtd/spi/Kconfig        |   5 +-
+ drivers/mtd/spi/spi-nor-core.c |  21 ++++++-
+ drivers/mtd/spi/spi-nor-ids.c  |  41 +++++++++++-
+ drivers/spi/aspeed_spi.c       | 111 ++++++++++++++++++++++-----------
+ 4 files changed, 138 insertions(+), 40 deletions(-)
+
+diff --git a/drivers/mtd/spi/Kconfig b/drivers/mtd/spi/Kconfig
+index 5671bca2..2c0ba126 100644
+--- a/drivers/mtd/spi/Kconfig
++++ b/drivers/mtd/spi/Kconfig
+@@ -145,7 +145,10 @@ config SPI_FLASH_XMC
+ 	help
+ 	  Add support for various XMC (Wuhan Xinxin Semiconductor
+ 	  Manufacturing Corp.) SPI flash chips (XM25xxx)
+-
++config SPI_FLASH_XTX
++       bool "XTX SPI flash support"
++       help
++         Add support for various XTX SPI flash chips (XT25xxx)
+ endif
+ 
+ config SPI_FLASH_USE_4K_SECTORS
+diff --git a/drivers/mtd/spi/spi-nor-core.c b/drivers/mtd/spi/spi-nor-core.c
+index e1936759..8e138a1b 100644
+--- a/drivers/mtd/spi/spi-nor-core.c
++++ b/drivers/mtd/spi/spi-nor-core.c
+@@ -10,6 +10,7 @@
+  */
+ 
+ #include <common.h>
++#include <linux/delay.h>
+ #include <linux/err.h>
+ #include <linux/errno.h>
+ #include <linux/log2.h>
+@@ -298,7 +299,7 @@ static int write_winbond_sr2(struct spi_nor *nor, u8 val)
+  */
+ static int write_enable(struct spi_nor *nor)
+ {
+-	return nor->write_reg(nor, SPINOR_OP_WREN, NULL, 0);
++	return nor->write_reg(nor, nor->wren_opcode, NULL, 0);
+ }
+ 
+ /*
+@@ -411,6 +412,7 @@ static int set_4byte(struct spi_nor *nor, const struct flash_info *info,
+ 	case SNOR_MFR_ISSI:
+ 	case SNOR_MFR_CYPRESS:
+ 	case SNOR_MFR_XTX:
++	case SNOR_MFR_PY:
+ 		if (need_wren)
+ 			write_enable(nor);
+ 
+@@ -2834,6 +2836,17 @@ static int spi_nor_init(struct spi_nor *nor)
+ 	return 0;
+ }
+ 
++void spi_nor_pre_fixups(struct spi_nor *nor, const struct flash_info *info)
++{
++	if (JEDEC_MFR(info) == SNOR_MFR_WINBOND) {
++		if ((info->id[1] == 0x40 && info->id[2] == 0x21) ||
++		    (info->id[1] == 0x70 && info->id[2] == 0x21) ||
++		    (info->id[1] == 0x70 && info->id[2] == 0x22) ||
++		    (info->id[1] == 0x80 && info->id[2] == 0x22))
++			nor->wren_opcode = SPINOR_OP_VSR_WREN;
++	}
++}
++
+ int spi_nor_scan(struct spi_nor *nor)
+ {
+ 	struct spi_nor_flash_parameter params;
+@@ -2857,6 +2870,7 @@ int spi_nor_scan(struct spi_nor *nor)
+ 	nor->write_reg = spi_nor_write_reg;
+ 	nor->flash_lock_by_host_ctrl = spi_nor_wlock_by_host_ctrl;
+ 	nor->flash_unlock_by_host_ctrl = spi_nor_wunlock_by_host_ctrl;
++	nor->wren_opcode = SPINOR_OP_WREN;
+ 
+ 	if (spi->mode & SPI_RX_QUAD) {
+ 		hwcaps.mask |= SNOR_HWCAPS_READ_1_1_4;
+@@ -2875,6 +2889,9 @@ int spi_nor_scan(struct spi_nor *nor)
+ 	info = spi_nor_read_id(nor);
+ 	if (IS_ERR_OR_NULL(info))
+ 		return -ENOENT;
++
++	spi_nor_pre_fixups(nor, info);
++
+ 	/* Parse the Serial Flash Discoverable Parameters table. */
+ 	ret = spi_nor_init_params(nor, info, &params);
+ 	if (ret)
+@@ -3001,6 +3018,8 @@ int spi_nor_scan(struct spi_nor *nor)
+ 	if (info->fixup)
+ 		info->fixup(nor);
+ 
++	nor->wren_opcode = SPINOR_OP_WREN;
++
+ #ifndef CONFIG_SPL_BUILD
+ 	printf("SF: Detected %s with page size ", nor->name);
+ 	print_size(nor->page_size, ", erase size ");
+diff --git a/drivers/mtd/spi/spi-nor-ids.c b/drivers/mtd/spi/spi-nor-ids.c
+index aa37b9a5..638d701d 100644
+--- a/drivers/mtd/spi/spi-nor-ids.c
++++ b/drivers/mtd/spi/spi-nor-ids.c
+@@ -9,6 +9,7 @@
+ #include <common.h>
+ #include <spi.h>
+ #include <spi_flash.h>
++#include <linux/mtd/spi-nor.h>
+ 
+ #include "sf_internal.h"
+ 
+@@ -121,14 +122,24 @@ const struct flash_info spi_nor_ids[] = {
+ 			SECT_4K | SPI_NOR_DUAL_READ | SPI_NOR_QUAD_READ |
+ 			SPI_NOR_HAS_LOCK | SPI_NOR_HAS_TB)
+ 	},
++	{
++		INFO("gd55b01gf", 0xc8401b, 0, 64 * 1024, 2048,
++		     SECT_4K | SPI_NOR_DUAL_READ | SPI_NOR_QUAD_READ |
++		     SPI_NOR_HAS_LOCK | SPI_NOR_HAS_TB)
++	},
++	{
++		INFO("gd55b02gf", 0xc8401c, 0, 64 * 1024, 4096,
++		     SECT_4K | SPI_NOR_DUAL_READ | SPI_NOR_QUAD_READ |
++		     SPI_NOR_HAS_LOCK | SPI_NOR_HAS_TB)
++	},
+ 	{
+ 		INFO("gd55b01ge", 0xc8471b, 0, 64 * 1024, 2048,
+-			SECT_4K | SPI_NOR_DUAL_READ | SPI_NOR_QUAD_READ |
++			SECT_4K | SPI_NOR_QUAD_READ |
+ 			SPI_NOR_HAS_LOCK | SPI_NOR_HAS_TB)
+ 	},
+ 	{
+ 		INFO("gd55b02ge", 0xc8471c, 0, 64 * 1024, 4096,
+-			SECT_4K | SPI_NOR_DUAL_READ | SPI_NOR_QUAD_READ |
++			SECT_4K | SPI_NOR_QUAD_READ |
+ 			SPI_NOR_HAS_LOCK | SPI_NOR_HAS_TB)
+ 	},
+ #endif
+@@ -228,6 +239,7 @@ const struct flash_info spi_nor_ids[] = {
+ 	{ INFO6("s25hl256t",  0x342a19, 0x0f0390, 256 * 1024, 128, SPI_NOR_DUAL_READ | SPI_NOR_QUAD_READ | SPI_NOR_4B_OPCODES |	USE_CLSR) },
+ 	{ INFO6("s25hl512t",  0x342a1a, 0x0f0390, 256 * 1024, 256, SPI_NOR_DUAL_READ | SPI_NOR_QUAD_READ | SPI_NOR_4B_OPCODES | USE_CLSR) },
+ 	{ INFO6("s25hl01gt",  0x342a1b, 0x0f0390, 256 * 1024, 512, SPI_NOR_DUAL_READ | SPI_NOR_QUAD_READ | SPI_NOR_4B_OPCODES |	USE_CLSR) },
++	{ INFO6("s25hl02gt",  0x342a1c, 0x0f0090, 256 * 1024, 1024, SPI_NOR_DUAL_READ | SPI_NOR_QUAD_READ | SPI_NOR_4B_OPCODES | USE_CLSR) },
+ 	{ INFO6("s25hs256t",  0x342b19, 0x0f0390, 256 * 1024, 128, SPI_NOR_DUAL_READ | SPI_NOR_QUAD_READ | SPI_NOR_4B_OPCODES |	USE_CLSR) },
+ 	{ INFO6("s25hs512t",  0x342b1a, 0x0f0390, 256 * 1024, 256, SPI_NOR_DUAL_READ | SPI_NOR_QUAD_READ | SPI_NOR_4B_OPCODES |	USE_CLSR) },
+ 	{ INFO6("s25hs01gt",  0x342b1b, 0x0f0390, 256 * 1024, 512, SPI_NOR_DUAL_READ | SPI_NOR_QUAD_READ | SPI_NOR_4B_OPCODES |	USE_CLSR) },
+@@ -350,6 +362,7 @@ const struct flash_info spi_nor_ids[] = {
+ 		INFO("w25q02jv", 0xef7022, 0, 64 * 1024, 4096,
+ 			SECT_4K | SPI_NOR_DUAL_READ | SPI_NOR_QUAD_READ |
+ 			SPI_NOR_HAS_LOCK | SPI_NOR_HAS_TB)
++		.fixup = w25q02gjv_fixup,
+ 	},
+ 	{
+ 		INFO("w25q01jvfim", 0xef7021, 0, 64 * 1024, 2048,
+@@ -364,10 +377,34 @@ const struct flash_info spi_nor_ids[] = {
+ 	{ INFO("w25q256", 0xef4019, 0, 64 * 1024, 512, SECT_4K | SPI_NOR_DUAL_READ | SPI_NOR_QUAD_READ) },
+ 	{ INFO("w25m512jv", 0xef7119, 0, 64 * 1024, 1024, SECT_4K | SPI_NOR_QUAD_READ | SPI_NOR_DUAL_READ) },
+ #endif
++#ifdef CONFIG_SPI_FLASH_XTX
++	{
++		INFO("xt25w512b", 0x0b651a, 0, 64 * 1024, 1024,
++		     SECT_4K | SPI_NOR_DUAL_READ | SPI_NOR_QUAD_READ |
++		     SPI_NOR_HAS_LOCK | SPI_NOR_HAS_TB)
++	},
++	{
++		INFO("xt25w01gb", 0x0b651b, 0, 64 * 1024, 2048,
++		     SECT_4K | SPI_NOR_DUAL_READ | SPI_NOR_QUAD_READ |
++		     SPI_NOR_HAS_LOCK | SPI_NOR_HAS_TB)
++	},
++#endif
+ #ifdef CONFIG_SPI_FLASH_XMC
+ 	/* XMC (Wuhan Xinxin Semiconductor Manufacturing Corp.) */
+ 	{ INFO("XM25QH64A", 0x207017, 0, 64 * 1024, 128, SECT_4K | SPI_NOR_DUAL_READ | SPI_NOR_QUAD_READ) },
+ 	{ INFO("XM25QH128A", 0x207018, 0, 64 * 1024, 256, SECT_4K | SPI_NOR_DUAL_READ | SPI_NOR_QUAD_READ) },
++	{ INFO("XM25QH256C", 0x204019, 0, 64 * 1024, 512, SECT_4K | SPI_NOR_DUAL_READ |
++	       SPI_NOR_QUAD_READ | SPI_NOR_4B_OPCODES) },
++	{ INFO("XM25QU256C", 0x204119, 0, 64 * 1024, 512, SECT_4K | SPI_NOR_DUAL_READ |
++	       SPI_NOR_QUAD_READ | SPI_NOR_4B_OPCODES) },
++	{ INFO("XM25QH512C", 0x204020, 0, 64 * 1024, 1024, SECT_4K | SPI_NOR_DUAL_READ |
++	       SPI_NOR_QUAD_READ | SPI_NOR_4B_OPCODES) },
++	{ INFO("XM25QU512C", 0x204120, 0, 64 * 1024, 1024, SECT_4K | SPI_NOR_DUAL_READ |
++	       SPI_NOR_QUAD_READ | SPI_NOR_4B_OPCODES) },
+ #endif
++	{ INFO("PY25Q512HB", 0x85201a, 0, 64 * 1024, 1024, SECT_4K | SPI_NOR_DUAL_READ |
++	       SPI_NOR_QUAD_READ | SPI_NOR_HAS_TB) },
++	{ INFO("PY25Q01GHB", 0x85201b, 0, 64 * 1024, 2048, SECT_4K | SPI_NOR_DUAL_READ |
++	       SPI_NOR_QUAD_READ | SPI_NOR_HAS_TB) },
+ 	{ },
+ };
+diff --git a/drivers/spi/aspeed_spi.c b/drivers/spi/aspeed_spi.c
+index e7696f35..7cffc237 100644
+--- a/drivers/spi/aspeed_spi.c
++++ b/drivers/spi/aspeed_spi.c
+@@ -691,29 +691,26 @@ static int aspeed_spi_controller_init(struct aspeed_spi_priv *priv)
+ 	if (priv->new_ver) {
+ 		for (cs = 0; cs < priv->flash_count; cs++) {
+ 			struct aspeed_spi_flash *flash = &priv->flashes[cs];
+-			u32 seg_addr = readl(&priv->regs->segment_addr[cs]);
+ 			u32 addr_config = 0;
+ 			switch(cs) {
+-
+-                               case 0:
+-                                        flash->ahb_base = cs ? (void *)G6_SEGMENT_ADDR_START(seg_addr) :
+-                                                priv->ahb_base;
+-                                        debug("cs0 mem-map : %x \n", (u32)flash->ahb_base);
+-                                        break;
+-                                case 1:
+-                                        flash->ahb_base = priv->flashes[0].ahb_base + 0x8000000;        //cs0 + 128Mb : use 64MB
+-                                        debug("cs1 mem-map : %x end %x \n", (u32)flash->ahb_base, (u32)flash->ahb_base + 0x4000000);
+-                                        addr_config = G6_SEGMENT_ADDR_VALUE((u32)flash->ahb_base, (u32)flash->ahb_base + 0x4000000); //add 512Mb
+-                                        writel(addr_config, &priv->regs->segment_addr[cs]);
+-                                        break;
+-                                case 2:
+-                                        flash->ahb_base = priv->flashes[0].ahb_base + 0xc000000;        //cs0 + 192Mb : use 64MB
+-                                        debug("cs2 mem-map : %x end %x \n", (u32)flash->ahb_base, (u32)flash->ahb_base + 0x4000000);
+-                                        addr_config = G6_SEGMENT_ADDR_VALUE((u32)flash->ahb_base, (u32)flash->ahb_base + 0x4000000); //add 512Mb
+-                                        writel(addr_config, &priv->regs->segment_addr[cs]);
+-                                       break;
+-
++			case 0:
++				flash->ahb_base = priv->ahb_base;
++				debug("cs0 mem-map : %x\n", (u32)flash->ahb_base);
++				break;
++			case 1:
++				flash->ahb_base = priv->flashes[0].ahb_base + 0x4000000; /* cs0 + 64MB */
++				debug("cs1 mem-map : %x end %x\n",
++				      (u32)flash->ahb_base, (u32)flash->ahb_base + 0x4000000);
++				break;
++			case 2:
++				flash->ahb_base = priv->flashes[0].ahb_base + 0x4000000 * 2; /* cs0 + 128MB : use 64MB */
++				debug("cs2 mem-map : %x end %x\n",
++				      (u32)flash->ahb_base, (u32)flash->ahb_base + 0x4000000);
++				break;
+ 			}
++			addr_config =
++				G6_SEGMENT_ADDR_VALUE((u32)flash->ahb_base, (u32)flash->ahb_base + 0x4000000);
++			writel(addr_config, &priv->regs->segment_addr[cs]);
+ 			flash->cs = cs;
+ 			flash->ce_ctrl_user = CE_CTRL_USERMODE;
+ 			flash->ce_ctrl_fread = CE_CTRL_READMODE;
+@@ -1580,6 +1577,11 @@ static int aspeed_spi_flash_set_segment(struct aspeed_spi_priv *priv,
+ 					struct aspeed_spi_flash *flash)
+ {
+ 	u32 seg_addr;
++	u32 decode_sz_arr[ASPEED_SPI_MAX_CS];
++	u32 reg_val;
++	u32 cs;
++	u32 total_decode_sz = 0;
++	u32 cur_offset = 0;
+ 
+ 	/* could be configured through the device tree */
+ 	flash->ahb_size = flash->spi->size;
+@@ -1589,14 +1591,51 @@ static int aspeed_spi_flash_set_segment(struct aspeed_spi_priv *priv,
+ 			flash->ahb_size = priv->ahb_size / priv->num_cs;
+ 			flash->ahb_size &= 0xffe00000;
+ 		}
+-               seg_addr = G6_SEGMENT_ADDR_VALUE((u32)flash->ahb_base,
+-                                               (u32)flash->ahb_base + flash->ahb_size);
+ 
++		for (cs = 0; cs < ASPEED_SPI_MAX_CS; cs++) {
++			reg_val = readl(&priv->regs->segment_addr[cs]);
++			if (reg_val != 0 &&
++			    G6_SEGMENT_ADDR_END(reg_val) > G6_SEGMENT_ADDR_START(reg_val)) {
++				decode_sz_arr[cs] =
++					G6_SEGMENT_ADDR_END(reg_val) - G6_SEGMENT_ADDR_START(reg_val);
++			} else {
++				decode_sz_arr[cs] = 0;
++			}
++		}
++
++		decode_sz_arr[flash->cs] = flash->ahb_size;
++		aspeed_g6_adjust_decode_sz(decode_sz_arr, flash->cs + 1);
++
++		for (cs = 0; cs < ASPEED_SPI_MAX_CS; cs++)
++			total_decode_sz += decode_sz_arr[cs];
++
++		if (total_decode_sz > priv->ahb_size) {
++			printf("err: Total decoded size, 0x%x, is too large.\n", total_decode_sz);
++			return -ENOMEM;
++		}
++
++		for (cs = 0; cs < ASPEED_SPI_MAX_CS; cs++) {
++			struct aspeed_spi_flash *flash = &priv->flashes[cs];
++
++			flash->ahb_base = (void __iomem *)((u32)priv->ahb_base + cur_offset);
++
++			if (decode_sz_arr[cs] != 0) {
++				seg_addr = G6_SEGMENT_ADDR_VALUE((u32)flash->ahb_base,
++								 (u32)flash->ahb_base + decode_sz_arr[cs]);
++			} else {
++				seg_addr = 0;
++			}
++
++			writel(seg_addr, &priv->regs->segment_addr[cs]);
++			flash->ahb_size = decode_sz_arr[cs];
++			cur_offset += decode_sz_arr[cs];
++		}
+ 	} else {
+ 		seg_addr = SEGMENT_ADDR_VALUE((u32)flash->ahb_base,
+ 						  (u32)flash->ahb_base + flash->ahb_size);
++		writel(seg_addr, &priv->regs->segment_addr[flash->cs]);
+ 	}
+-writel(seg_addr, &priv->regs->segment_addr[flash->cs]);
++
+ 	return 0;
+ }
+ 
+@@ -1666,19 +1705,19 @@ static int aspeed_spi_flash_init(struct aspeed_spi_priv *priv,
+ 	}
+ 
+ 	switch(flash->spi->program_opcode) {
+-		case SPINOR_OP_PP:
+-		case SPINOR_OP_PP_4B:
+-			flash->write_iomode = CE_CTRL_IO_SINGLE;
+-			break;
+-		case SPINOR_OP_PP_1_1_4:
+-		case SPINOR_OP_PP_1_1_4_4B:
+-			flash->write_iomode = CE_CTRL_IO_QUAD_DATA;
+-			break;
+-		case SPINOR_OP_PP_1_4_4:
+-		case SPINOR_OP_PP_1_4_4_4B:
+-			flash->write_iomode = CE_CTRL_IO_QUAD_ADDR_DATA;
+-			printf("need modify dummy for 3 bytes");
+-			break;
++	case SPINOR_OP_PP:
++	case SPINOR_OP_PP_4B:
++		flash->write_iomode = CE_CTRL_IO_SINGLE;
++		break;
++	case SPINOR_OP_PP_1_1_4:
++	case SPINOR_OP_PP_1_1_4_4B:
++		flash->write_iomode = CE_CTRL_IO_QUAD_DATA;
++		break;
++	case SPINOR_OP_PP_1_4_4:
++	case SPINOR_OP_PP_1_4_4_4B:
++		flash->write_iomode = CE_CTRL_IO_QUAD_ADDR_DATA;
++		printf("need modify dummy for 3 bytes");
++		break;
+ 	}
+ 
+ 	if(priv->new_ver) {
+-- 
+2.49.0
+

@@ -1,0 +1,43 @@
+#------------------------------------------------------------------------------------------------------
+#                Makefile to build partial turbo web framework
+#                 Copyright (c) 2015 American Megatrends Inc 
+#------------------------------------------------------------------------------------------------------
+
+#------- Set y/n in the following line to enable/disable debugging------
+DEBUG = n
+
+# Define comma for use in filter-out function
+comma := ,
+
+#---------------------- Change according to your files ---------------------------------------
+LIBRARY_NAME	= libtffi_wrap
+
+SRC  = 	deps/turbo_ffi_wrap.c
+
+CFLAGS += -I./deps/
+CFLAGS += -I${SPXINC}/http_parser
+CFLAGS += -I${TARGETDIR}/usr/include
+CFLAGS += -I${TARGETDIR}/usr/include/${MULTI_ARCH_LIB}
+
+LIBS += ${SPXLIB}/http_parser/http_parser.o
+LIBS += ${IMAGE_TREE}/usr/lib/${MULTI_ARCH_LIB}/libssl.so
+LIBS += ${IMAGE_TREE}/usr/lib/${MULTI_ARCH_LIB}/libcrypto.so 
+
+include ${TOOLDIR}/rules/Rules.make.libs
+
+# Security fix: Remove RPATH flags AFTER Rules.make.libs adds them
+# Filter out runtime RPATH entries while keeping rpath-link (build-time) flags
+# This must come AFTER the include to override the LIBS variable with filtered values
+LIBS := $(filter-out -Wl$(comma)-rpath=/usr/local/lib -Wl$(comma)-rpath=/usr/lib -Wl$(comma)-rpath=/lib -Wl$(comma)-rpath=/usr/lib/${MULTI_ARCH_LIB} -Wl$(comma)-rpath=/lib/${MULTI_ARCH_LIB},$(LIBS))
+
+# Override the build rule to use the cleaned LIBS variable
+$(LIB_REALNAME): $(LIB_ARCHIVE_NAME)
+	@echo "  LIB     $@ (no RPATH)"
+	@$(CC) $(LDFLAGS) -shared -Wl,-soname,$(LIB_SONAME) -o $(LIB_REALNAME) \
+	-Wl,--whole-archive $(LIB_ARCHIVE_NAME) -Wl,--no-whole-archive -lc $(LIBS)
+ifeq ($(STRIP_NEED),y)
+	@echo "  STRIP   $@"
+	@$(STRIP) $@
+endif
+
+#------------------------------------------------------------------------------------------------------

@@ -1,0 +1,22 @@
+--- busybox-1.21.1_ori/networking/ifupdown.c	2026-04-27 14:58:59.351418828 +0800
++++ busybox-1.21.1/networking/ifupdown.c	2026-04-27 15:05:28.909496030 +0800
+@@ -420,7 +420,7 @@
+ 		return ((result > 0) ? result : 0);
+ 	} // if
+ 	else {
+-		return ((result == 2) ? 2 : 0);
++		return ((result > 0) ? 2 : 0);
+ 	} // elseh
+ }
+ 
+@@ -1091,9 +1091,7 @@
+ 	char *buf;
+ 	for (i = 0; i < ifd->n_options; i++) {
+ 		if (strcmp(ifd->option[i].name, opt) == 0) {
+-			if (!doit(ifd->option[i].value)) {
+-				return 0;
+-			}
++			doit(ifd->option[i].value);
+ 		}
+ 	}
+ 
